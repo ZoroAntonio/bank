@@ -2760,18 +2760,6 @@ function getTransferStatusOptions(row: AdminRow, currentValue: unknown) {
         { value: 'failed', label: 'Failed' },
       ];
 
-  if (sourceTable === 'bank_transfers' && ['approved', 'completed'].includes(currentStatus)) {
-    return [{ value: currentStatus, label: 'Approved' }];
-  }
-
-  if (sourceTable === 'crypto_transfers' && currentStatus === 'completed') {
-    return [{ value: 'completed', label: 'Completed' }];
-  }
-
-  if (sourceTable === 'crypto_transfers' && currentStatus === 'approved') {
-    return options.filter((option) => ['approved', 'completed'].includes(option.value));
-  }
-
   if (currentStatus && !options.some((option) => option.value === currentStatus)) {
     return [{ value: currentStatus, label: toSentenceCase(currentStatus) }, ...options];
   }
