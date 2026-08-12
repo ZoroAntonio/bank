@@ -146,6 +146,14 @@ function parseFiatAmountFromText(value: string) {
   return null;
 }
 
+function parseBareFiatAmount(value: string) {
+  const text = value.trim();
+  if (!text || !/^[+-]?\d[\d\s,.]*$/.test(text)) return null;
+
+  const amount = normalizeAmountNumber(text);
+  return Number.isFinite(amount) ? amount : null;
+}
+
 function translateValue(t: Translate, group: 'types' | 'statuses', value: string) {
   const normalized = value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_');
   if (!normalized) return t('dashboardTransactions.common.empty');
@@ -217,6 +225,20 @@ function getFiatTransactionAmount(tx: Transaction, t: Translate, locale: string)
     };
   }
 
+  // The current banking transaction schema stores the entered transaction value
+  // in `details` when no legacy `amount` column is present. Treat an amount-only
+  // details value (for example, "5860") as the transaction amount.
+  const detailsAmount = parseBareFiatAmount(tx.details || tx.description || '');
+  if (detailsAmount !== null) {
+    return {
+      amount: Math.abs(detailsAmount),
+      currency,
+      hasAmount: true,
+      signed: `${detailsAmount < 0 ? '-' : isBankingInflow(tx.type) ? '+' : '-'}${formatCurrencyByCode(Math.abs(detailsAmount), currency, locale)}`,
+      plain: formatCurrencyByCode(Math.abs(detailsAmount), currency, locale),
+    };
+  }
+
   return {
     amount: 0,
     currency,
@@ -227,7 +249,12 @@ function getFiatTransactionAmount(tx: Transaction, t: Translate, locale: string)
 }
 
 function getFiatTransactionTitle(tx: Transaction, t: Translate) {
-  return tx.details || tx.description || tx.comment || t('dashboardTransactions.common.bankingTransaction');
+  const details = tx.details || tx.description || '';
+
+  if (details && parseBareFiatAmount(details) === null) return details;
+  if (tx.type) return translateValue(t, 'types', tx.type);
+
+  return tx.comment || t('dashboardTransactions.common.bankingTransaction');
 }
 
 function getFiatTransactionNotes(tx: Transaction, t: Translate) {
