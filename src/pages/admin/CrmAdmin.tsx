@@ -154,6 +154,7 @@ type BalanceDraft = {
   code: string;
   name: string;
   balance: string;
+  status: BalanceAvailabilityStatus;
 };
 
 type DraftField = {
@@ -3239,11 +3240,12 @@ function BalanceGroupedRow({
   onEdit: () => void;
   onMoveUp: () => Promise<void>;
   onMoveDown: () => Promise<void>;
-  onSave: (nextBalance: string) => Promise<void>;
+  onSave: (nextBalance: string, nextStatus: BalanceAvailabilityStatus) => Promise<void>;
   onDelete: () => Promise<void>;
   onCancel: () => void;
 }) {
   const [balance, setBalance] = useState(String(row.balance));
+  const [status, setStatus] = useState<BalanceAvailabilityStatus>(row.status);
   const isFiat = row.balance_kind === 'fiat';
   const supportsFormattedFiatInput = shouldNormalizeFiatBalanceInput(row);
   const isBusy = saving || deleting || orderControlsDisabled;
@@ -3251,8 +3253,9 @@ function BalanceGroupedRow({
   useEffect(() => {
     if (editing) {
       setBalance(String(row.balance));
+      setStatus(row.status);
     }
-  }, [editing, row.balance, row.id]);
+  }, [editing, row.balance, row.id, row.status]);
 
   return (
     <article className="bg-white px-5 py-5 sm:px-6">
@@ -3340,7 +3343,7 @@ function BalanceGroupedRow({
 
       {editing ? (
         <div className={`mt-4 rounded-[18px] border p-4 ${isFiat ? 'border-[#006446]/12 bg-[#006446]/[0.03]' : 'border-slate-200 bg-slate-50/80'}`}>
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,auto)] lg:items-end">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(220px,0.7fr)_minmax(320px,auto)] lg:items-end">
             <label className="space-y-2">
               <span className="text-sm font-medium text-slate-700">New balance</span>
               <input
@@ -3354,6 +3357,17 @@ function BalanceGroupedRow({
               {supportsFormattedFiatInput ? (
                 <p className="text-xs text-slate-500">Accepts inputs like `52,453.36` or `52.453.36` and saves them as `52453.36`.</p>
               ) : null}
+            </label>
+
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-slate-700">Balance status</span>
+              <Dropdown
+                value={status}
+                options={getBalanceStatusOptions(status)}
+                onChange={(nextStatus) => setStatus(normalizeBalanceStatus(nextStatus))}
+                className="w-full"
+              />
+              <span className="block text-xs text-slate-500">Saved only for {row.asset_code}.</span>
             </label>
 
             <div className="grid gap-2 sm:grid-cols-3">
@@ -3378,7 +3392,7 @@ function BalanceGroupedRow({
 
               <button
                 type="button"
-                onClick={() => void onSave(balance)}
+                onClick={() => void onSave(balance, status)}
                 disabled={isBusy}
                 className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${isFiat ? 'bg-[#006446] hover:bg-[#004d36]' : 'bg-slate-900 hover:bg-slate-800'}`}
               >
@@ -3657,7 +3671,7 @@ function BalanceCreateCard({
         </div>
       </div>
 
-      <div className="grid gap-4 px-5 py-4 md:grid-cols-2">
+      <div className="grid gap-4 px-5 py-4 md:grid-cols-2 xl:grid-cols-3">
         <label className="space-y-2">
           <span className="text-sm font-medium text-slate-700">Balance Type</span>
           <Dropdown
@@ -3707,6 +3721,16 @@ function BalanceCreateCard({
             onChange={(event) => onChange({ balance: event.target.value })}
             className="w-full rounded-xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
           />
+        </label>
+
+        <label className="space-y-2">
+          <span className="text-sm font-medium text-slate-700">Initial Status</span>
+          <Dropdown
+            value={draft.status}
+            options={getBalanceStatusOptions(draft.status)}
+            onChange={(status) => onChange({ status: normalizeBalanceStatus(status) })}
+          />
+          <span className="block text-xs leading-5 text-slate-500">Stored on this balance row in the database.</span>
         </label>
       </div>
     </div>
@@ -4485,6 +4509,7 @@ export default function CrmAdmin() {
     code: 'USD',
     name: '',
     balance: '0',
+    status: 'available',
   });
   const [balanceStatusDraft, setBalanceStatusDraft] = useState<BalanceStatusControlValue>('available');
   const [brandingForm, setBrandingForm] = useState<BrandingForm>(() => toBrandingForm(branding));
@@ -4781,10 +4806,10 @@ export default function CrmAdmin() {
     ? 'available'
     : customerBalanceStatus;
   const balanceCreateStatusNote = balanceRows.length === 0
-    ? `The next balance you create will start as ${getBalanceStatusLabel(balanceCreateStatus).toLowerCase()}.`
+    ? `The status defaults to ${getBalanceStatusLabel(balanceCreateStatus).toLowerCase()}, and you can choose another status for this balance.`
     : customerBalanceStatus === 'mixed'
-    ? 'This customer currently has mixed statuses, so new balances default to available until you apply one customer-wide setting.'
-    : `New balances inherit the current customer-wide status: ${getBalanceStatusLabel(balanceCreateStatus)}.`;
+    ? 'This customer has mixed statuses, so new balances default to available; you can choose another status before creating one.'
+    : `The status defaults to ${getBalanceStatusLabel(balanceCreateStatus)}, and you can choose another status for this balance.`;
   const activityTransactionCreateSource: TransactionSourceTable = newActivitySource === 'crypto_transactions'
     ? 'crypto_transactions'
     : 'transactions';
@@ -4929,7 +4954,13 @@ export default function CrmAdmin() {
   }, [activeConfig?.name, selectedUserId]);
 
   useEffect(() => {
-    resetNewBalanceDraft();
+    setNewBalanceDraft({
+      kind: 'fiat',
+      code: 'USD',
+      name: '',
+      balance: '0',
+      status: 'available',
+    });
   }, [selectedUserId, activeConfig?.name]);
 
   useEffect(() => {
@@ -5232,6 +5263,7 @@ export default function CrmAdmin() {
       code: 'USD',
       name: '',
       balance: '0',
+      status: balanceCreateStatus,
     });
   }
 
@@ -5640,7 +5672,7 @@ export default function CrmAdmin() {
               name: newBalanceDraft.name.trim() || getDefaultFiatAssetName(trimmedCode),
               display_order: nextDisplayOrder,
               balance: numericBalance,
-              status: balanceCreateStatus,
+              status: normalizeBalanceStatus(newBalanceDraft.status),
             }
           : {
               user_id: selectedUserId,
@@ -5648,7 +5680,7 @@ export default function CrmAdmin() {
               name: newBalanceDraft.name.trim() || trimmedCode,
               display_order: nextDisplayOrder,
               balance: numericBalance,
-              status: balanceCreateStatus,
+              status: normalizeBalanceStatus(newBalanceDraft.status),
             };
 
       const insertPayload: Record<string, unknown> = { ...payload };
@@ -5681,7 +5713,7 @@ export default function CrmAdmin() {
         }));
         setNotice({
           kind: 'success',
-          message: `${newBalanceDraft.kind === 'fiat' ? 'Fiat' : 'Crypto'} balance created and enabled for live exchange.`,
+          message: `${newBalanceDraft.kind === 'fiat' ? 'Fiat' : 'Crypto'} balance created with ${getBalanceStatusLabel(newBalanceDraft.status).toLowerCase()} status.`,
         });
         resetNewBalanceDraft();
         setIsAddingRecord(false);
@@ -6472,7 +6504,11 @@ export default function CrmAdmin() {
     });
   }
 
-  async function handleBalanceSave(row: BalanceRow, nextBalance: string) {
+  async function handleBalanceSave(
+    row: BalanceRow,
+    nextBalance: string,
+    nextStatus: BalanceAvailabilityStatus,
+  ) {
     const sourceRows = tableData[row.source_table] || [];
     const originalRow = sourceRows.find((entry) => String(entry.id) === row.source_id);
     const normalizedBalance = shouldNormalizeFiatBalanceInput(row)
@@ -6499,6 +6535,7 @@ export default function CrmAdmin() {
     await handleRecordSave(row.source_table, originalRow, {
       ...originalRow,
       balance: numericBalance,
+      status: normalizeBalanceStatus(nextStatus),
     });
   }
 
@@ -6832,7 +6869,7 @@ export default function CrmAdmin() {
         onEdit={() => handleStartEditRecord(row.id)}
         onMoveUp={() => handleBalanceMove(row, 'up')}
         onMoveDown={() => handleBalanceMove(row, 'down')}
-        onSave={(nextBalance) => handleBalanceSave(row, nextBalance)}
+        onSave={(nextBalance, nextStatus) => handleBalanceSave(row, nextBalance, nextStatus)}
         onDelete={() => handleBalanceDelete(row)}
         onCancel={() => setEditingRecordId(null)}
       />

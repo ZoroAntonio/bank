@@ -257,10 +257,6 @@ function getFiatTransactionTitle(tx: Transaction, t: Translate) {
   return tx.comment || t('dashboardTransactions.common.bankingTransaction');
 }
 
-function getFiatTransactionNotes(tx: Transaction, t: Translate) {
-  return tx.comment || tx.details || tx.description || t('dashboardTransactions.common.bankingConfirmation');
-}
-
 function getCryptoTransactionTitle(tx: CryptoTransaction, t: Translate) {
   return tx.description || tx.comment || `${translateValue(t, 'types', tx.type)} ${tx.symbol}`;
 }
@@ -272,9 +268,12 @@ function getCryptoTransactionNotes(tx: CryptoTransaction, t: Translate) {
 function buildFiatTransactionInvoice(tx: Transaction, formatDate: (dateStr: string) => string, t: Translate, locale: string): TransactionInvoice {
   const reference = tx.reference_number || tx.poi || tx.id;
   const resolvedAmount = getFiatTransactionAmount(tx, t, locale);
+  const description = tx.comment.trim()
+    || (tx.type ? translateValue(t, 'types', tx.type) : t('dashboardTransactions.common.bankingTransaction'));
+  const amount = (tx.details || tx.description).trim() || resolvedAmount.signed;
 
   return {
-    title: getFiatTransactionTitle(tx, t),
+    title: description,
     documentTitle: t('dashboardTransactions.invoice.documentTitle'),
     sectionTitle: t('dashboardTransactions.invoice.sectionTitle'),
     subtitle: t('dashboardTransactions.invoice.subtitle'),
@@ -283,15 +282,15 @@ function buildFiatTransactionInvoice(tx: Transaction, formatDate: (dateStr: stri
     referenceId: reference,
     date: formatDate(tx.created_at),
     status: translateValue(t, 'statuses', tx.status || 'completed'),
-    amount: resolvedAmount.signed,
-    notes: getFiatTransactionNotes(tx, t),
+    amount,
+    notes: t('dashboardTransactions.common.bankingConfirmation'),
     fields: [
       { label: t('dashboardTransactions.details.transactionDate'), value: formatDate(tx.created_at) },
       { label: t('dashboardTransactions.details.transactionType'), value: translateValue(t, 'types', tx.type) },
       { label: t('dashboardTransactions.details.status'), value: translateValue(t, 'statuses', tx.status || 'completed') },
       { label: t('dashboardTransactions.details.referenceId'), value: reference },
       { label: t('dashboardTransactions.details.transactionId'), value: tx.id },
-      { label: t('dashboardTransactions.details.amount'), value: resolvedAmount.signed },
+      { label: t('dashboardTransactions.details.amount'), value: amount },
       { label: t('dashboardTransactions.details.balanceAfter'), value: formatCurrencyByCode(Number(tx.balance_after || 0), resolvedAmount.currency, locale) },
       { label: t('dashboardTransactions.details.poi'), value: tx.poi },
       { label: t('dashboardTransactions.details.category'), value: tx.category ? translateCategory(t, tx.category) : tx.category },

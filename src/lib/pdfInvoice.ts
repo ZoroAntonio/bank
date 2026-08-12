@@ -568,7 +568,7 @@ export function createProfessionalInvoicePdf(invoice: PdfInvoiceDocument, brandi
     `AMT:${invoice.amount}`,
   ].join('|');
   const referenceLines = wrapPdfText(`${labels.reference}: ${invoice.referenceId}`, 34);
-  const titleLines = wrapPdfText(invoice.title, 34);
+  const descriptionLines = wrapPdfText(invoice.title, 48).slice(0, 3);
   const detailsBoxHeight = 132 + Math.max(0, referenceLines.length - 1) * 14;
   const detailsBoxTopY = 636;
   const detailsBoxBottomY = detailsBoxTopY - detailsBoxHeight;
@@ -576,10 +576,7 @@ export function createProfessionalInvoicePdf(invoice: PdfInvoiceDocument, brandi
   const issuedY = statusY - 18;
   const qrSize = 146;
   const qrY = detailsBoxTopY - qrSize;
-  const titleTopY = 450;
-  const titleLineHeight = 18;
-  const titleBottomY = titleTopY - (titleLines.length - 1) * titleLineHeight - 12;
-  const tableHeaderY = titleBottomY - 42;
+  const tableHeaderY = 430;
   const lineItemY = tableHeaderY - 84;
   const totalRowY = lineItemY - 56;
   const notesTopY = totalRowY - 12;
@@ -608,15 +605,14 @@ export function createProfessionalInvoicePdf(invoice: PdfInvoiceDocument, brandi
   builder.text(labels.scanToVerify, 442, 614, 9, 'F2', brandGreen);
   drawQrCode(builder, qrPayload, 424, qrY, qrSize);
 
-  titleLines.forEach((line, index) => {
-    builder.text(line, 42, titleTopY - index * titleLineHeight, 18, 'F2', '0.09 0.13 0.22');
-  });
   builder.rect(42, tableHeaderY, 528, 44, brandGreen);
   builder.text(labels.description, 60, tableHeaderY + 18, 12, 'F2', '1 1 1');
   builder.text(labels.amount, 470, tableHeaderY + 18, 12, 'F2', '1 1 1');
 
   builder.rect(42, lineItemY, 528, 84, '1 1 1', brandGreenLight);
-  builder.text(invoice.title, 60, lineItemY + 42, 12, 'F1', '0.18 0.21 0.29');
+  descriptionLines.forEach((line, index) => {
+    builder.text(line, 60, lineItemY + 52 - index * 15, 12, 'F1', '0.18 0.21 0.29');
+  });
   builder.text(invoice.amount, 470, lineItemY + 42, 12, 'F1', '0.18 0.21 0.29');
   builder.line(430, lineItemY, 430, tableHeaderY, '0.86 0.90 0.96', 0.7);
 
