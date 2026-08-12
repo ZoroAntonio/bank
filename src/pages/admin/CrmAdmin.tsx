@@ -10,6 +10,8 @@ import {
   Copy,
   CreditCard,
   Database,
+  Eye,
+  EyeOff,
   Image as ImageIcon,
   Landmark,
   Layers3,
@@ -1411,6 +1413,8 @@ function CreateUserDialog({
     email_confirm: true,
   });
   const [validationError, setValidationError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const roleOptions = useMemo(
     () => {
       const allowedRoles: CrmRole[] = viewerRole === 'admin'
@@ -1563,30 +1567,56 @@ function CreateUserDialog({
             />
           </label>
 
-          <label className="space-y-2">
-            <span className="text-sm font-medium text-slate-700">Password *</span>
-            <input
-              type="password"
-              value={form.password}
-              onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-              disabled={creating}
-              autoComplete="new-password"
-              className="w-full rounded-xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15 disabled:bg-slate-50"
-            />
+          <div className="space-y-2">
+            <label htmlFor="create-user-password" className="block text-sm font-medium text-slate-700">Password *</label>
+            <div className="relative">
+              <input
+                id="create-user-password"
+                type={showPassword ? 'text' : 'password'}
+                value={form.password}
+                onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+                disabled={creating}
+                autoComplete="new-password"
+                className="w-full rounded-xl border border-[#006446]/14 bg-white py-3 pl-4 pr-12 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15 disabled:bg-slate-50"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((visible) => !visible)}
+                disabled={creating}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-pressed={showPassword}
+                className="absolute inset-y-0 right-0 inline-flex w-12 items-center justify-center text-slate-500 transition-colors hover:text-[#006446] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
             <p className="text-xs text-slate-500">Use at least 6 characters.</p>
-          </label>
+          </div>
 
-          <label className="space-y-2">
-            <span className="text-sm font-medium text-slate-700">Confirm password *</span>
-            <input
-              type="password"
-              value={form.confirm_password}
-              onChange={(event) => setForm((current) => ({ ...current, confirm_password: event.target.value }))}
-              disabled={creating}
-              autoComplete="new-password"
-              className="w-full rounded-xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15 disabled:bg-slate-50"
-            />
-          </label>
+          <div className="space-y-2">
+            <label htmlFor="create-user-confirm-password" className="block text-sm font-medium text-slate-700">Confirm password *</label>
+            <div className="relative">
+              <input
+                id="create-user-confirm-password"
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={form.confirm_password}
+                onChange={(event) => setForm((current) => ({ ...current, confirm_password: event.target.value }))}
+                disabled={creating}
+                autoComplete="new-password"
+                className="w-full rounded-xl border border-[#006446]/14 bg-white py-3 pl-4 pr-12 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15 disabled:bg-slate-50"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((visible) => !visible)}
+                disabled={creating}
+                aria-label={showConfirmPassword ? 'Hide password confirmation' : 'Show password confirmation'}
+                aria-pressed={showConfirmPassword}
+                className="absolute inset-y-0 right-0 inline-flex w-12 items-center justify-center text-slate-500 transition-colors hover:text-[#006446] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
 
           <label className="space-y-2 md:col-span-2">
             <span className="text-sm font-medium text-slate-700">Account IBAN</span>
