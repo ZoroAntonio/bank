@@ -26,6 +26,10 @@ import {
   type BrandingSettings,
 } from '../../contexts/BrandingContext';
 import { createBankTransferInvoicePdf } from '../../lib/pdfInvoice';
+import {
+  createTransferVerificationUrl,
+  formatPublicTransferId,
+} from '../../lib/transferVerification';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import {
@@ -144,10 +148,11 @@ function buildBankTransferInvoice(
 ) {
   const isInternal = transfer.transfer_type === 'internal';
   const amount = formatCurrency(transfer.amount, transfer.currency, locale);
-  const transferId = /^trx-/i.test(transfer.id) ? transfer.id : `trx-${transfer.id}`;
+  const transferId = formatPublicTransferId(transfer.id);
 
   return {
     transferId,
+    verificationUrl: createTransferVerificationUrl(window.location.origin, transferId),
     transferType: isInternal
       ? t('dashboardTransfers.details.internal')
       : 'International Transfer',
@@ -919,7 +924,7 @@ function BankTransferDetailModal({
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-slate-950">{formatCurrency(transfer.amount, transfer.currency, language)}</p>
-          <p className="text-xs text-slate-500">{transfer.id}</p>
+          <p className="text-xs text-slate-500">{formatPublicTransferId(transfer.id)}</p>
         </div>
         <StatusBadge t={t} status={transfer.status} />
       </div>

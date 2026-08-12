@@ -1,4 +1,5 @@
 import type { BrandingSettings } from '../contexts/BrandingContext';
+import QRCodeGenerator from 'qrcode';
 
 export type InvoiceField = {
   label: string;
@@ -40,6 +41,7 @@ export type BankTransferInvoiceDocument = {
   status: string;
   transferId: string;
   transferType: string;
+  verificationUrl: string;
 };
 
 type PdfBuilder = {
@@ -432,7 +434,7 @@ function getPenalty(matrix: number[][]) {
   return score;
 }
 
-function generateQrMatrix(data: string) {
+function generateLegacyQrMatrix(data: string) {
   const bits = encodeQrData(data);
   const version = getQrVersion(bits.length);
   const { ecPerBlock, numBlocks, totalDataCW } = getQrEcInfo(version);
@@ -526,6 +528,19 @@ function generateQrMatrix(data: string) {
   writeFormatInfo(matrix, bestMask);
 
   return matrix;
+}
+
+function generateQrMatrix(data: string) {
+  try {
+    const qrCode = QRCodeGenerator.create(data, { errorCorrectionLevel: 'M' });
+    const size = qrCode.modules.size;
+
+    return Array.from({ length: size }, (_, row) =>
+      Array.from({ length: size }, (_, column) => qrCode.modules.get(row, column))
+    );
+  } catch {
+    return generateLegacyQrMatrix(data);
+  }
 }
 
 function drawQrCode(builder: PdfBuilder, data: string, x: number, y: number, size: number) {
@@ -729,13 +744,7 @@ export function createBankTransferInvoicePdf(
   const blueSoft = '0.94 0.98 0.96';
   const border = '0.79 0.81 0.84';
   const muted = '0.35 0.41 0.55';
-  const qrPayload = [
-    `TRANSFER:${invoice.transferId}`,
-    `TYPE:${invoice.transferType}`,
-    `STATUS:${invoice.status}`,
-    `DATE:${invoice.date}`,
-    `AMOUNT:${invoice.amount}`,
-  ].join('|');
+  const qrPayload = invoice.verificationUrl;
 
   builder.rect(0, 670, 612, 122, blue);
   builder.text(branding.brandName.toUpperCase(), 30, 724, 24, 'F2', '1 1 1');

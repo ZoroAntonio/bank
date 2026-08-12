@@ -24,6 +24,7 @@ import DashboardLoans from './pages/dashboard/DashboardLoans';
 import DashboardAnalytics from './pages/dashboard/DashboardAnalytics';
 import DashboardTaxes from './pages/dashboard/DashboardTaxes';
 import CrmAdmin from './pages/admin/CrmAdmin';
+import TransferVerification from './pages/TransferVerification';
 
 function AppRoutes() {
   const location = useLocation();
@@ -80,17 +81,33 @@ function AppRoutes() {
 export default function App() {
   return (
     <Router>
-      <BrandingProvider>
-        <LanguageProvider>
-          <CookieConsentProvider>
-            <AuthProvider>
-              <ScrollToTop />
-              <AppRoutes />
-              <CookieConsent />
-            </AuthProvider>
-          </CookieConsentProvider>
-        </LanguageProvider>
-      </BrandingProvider>
+      <AppContent />
     </Router>
+  );
+}
+
+function AppContent() {
+  const location = useLocation();
+
+  if (location.pathname.startsWith('/transfer/')) {
+    return (
+      <Routes>
+        <Route path="/transfer/:transferId" element={<TransferVerification />} />
+      </Routes>
+    );
+  }
+
+  return (
+    <BrandingProvider>
+      <LanguageProvider>
+        <CookieConsentProvider>
+          <AuthProvider>
+            <ScrollToTop />
+            <AppRoutes />
+            <CookieConsent />
+          </AuthProvider>
+        </CookieConsentProvider>
+      </LanguageProvider>
+    </BrandingProvider>
   );
 }
