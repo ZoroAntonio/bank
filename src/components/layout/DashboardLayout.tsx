@@ -38,6 +38,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
+  useEffect(() => {
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
+
+    // Dashboard and CRM pages own their scrolling inside <main>. Locking the
+    // document prevents a second page scrollbar and the blank area beneath the
+    // viewport when browser scroll restoration retains an old window offset.
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+
+    return () => {
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+    };
+  }, []);
+
   const navSections = [
     {
       label: t('dashboardLayout.sections.banking'),
@@ -108,7 +125,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       : location.pathname.startsWith(path);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#006446]/[0.04]">
+    <div className="fixed inset-0 flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[#006446]/[0.04]">
       {!isCrmAdmin && (
         <div className="z-30 shrink-0 bg-gradient-to-r from-[#00523a] via-[#006446] to-[#0a7f59] shadow-[0_18px_45px_-38px_rgba(0,100,70,0.45)]">
           <header className="flex min-h-[76px] items-center gap-3 px-4 sm:gap-4 sm:px-6">

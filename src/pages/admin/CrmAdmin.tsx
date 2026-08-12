@@ -5,6 +5,8 @@ import {
   ArrowDown,
   ArrowUp,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Copy,
   CreditCard,
   Database,
@@ -200,6 +202,7 @@ type DeleteUserResponse = {
 };
 
 type BrandingForm = BrandingUpdate;
+type DirectoryRoleFilter = 'all' | CrmRole;
 
 const PROFILE_RECORD_SELECT = 'id, full_name, email, account_iban, created_at, updated_at, kyc_status, crm_role, is_admin, assigned_manager_id, assigned_agent_id, plain_password';
 
@@ -351,9 +354,33 @@ type CrmAdminViewState = {
   activeTable?: string;
   search?: string;
   scrollTop?: number;
+  directoryRoleFilter?: DirectoryRoleFilter;
+  directoryPage?: number;
+  directoryPageSize?: number;
 };
 
 const CRM_ADMIN_VIEW_STATE_KEY = 'crm-admin:view-state';
+const DIRECTORY_PAGE_SIZES = [5, 10, 20, 50] as const;
+const DIRECTORY_ROLE_FILTERS: Array<{ value: DirectoryRoleFilter; label: string }> = [
+  { value: 'all', label: 'All users' },
+  { value: 'customer', label: 'Customers' },
+  { value: 'agent', label: 'Agents' },
+  { value: 'superior_manager', label: 'Superior managers' },
+  { value: 'admin', label: 'Admins' },
+];
+
+function normalizeDirectoryRoleFilter(value: unknown): DirectoryRoleFilter {
+  return value === 'customer' || value === 'agent' || value === 'superior_manager' || value === 'admin'
+    ? value
+    : 'all';
+}
+
+function normalizeDirectoryPageSize(value: unknown) {
+  const numericValue = Number(value);
+  return DIRECTORY_PAGE_SIZES.includes(numericValue as (typeof DIRECTORY_PAGE_SIZES)[number])
+    ? numericValue
+    : DIRECTORY_PAGE_SIZES[0];
+}
 
 function getCrmRoleClasses(role: CrmRole) {
   switch (role) {
@@ -1356,12 +1383,16 @@ export function ProfileEditorCard({
 
 function CreateUserDialog({
   profiles,
+  viewerId,
+  viewerRole,
   creating,
   error,
   onCancel,
   onCreate,
 }: {
   profiles: ProfileRecord[];
+  viewerId: string;
+  viewerRole: CrmRole;
   creating: boolean;
   error: string;
   onCancel: () => void;
@@ -1381,13 +1412,16 @@ function CreateUserDialog({
   });
   const [validationError, setValidationError] = useState('');
   const roleOptions = useMemo(
-    () => [
-      { value: 'customer', label: getCrmRoleLabel('customer') },
-      { value: 'agent', label: getCrmRoleLabel('agent') },
-      { value: 'superior_manager', label: getCrmRoleLabel('superior_manager') },
-      { value: 'admin', label: getCrmRoleLabel('admin') },
-    ],
-    []
+    () => {
+      const allowedRoles: CrmRole[] = viewerRole === 'admin'
+        ? ['customer', 'agent', 'superior_manager', 'admin']
+        : viewerRole === 'superior_manager'
+        ? ['customer', 'agent']
+        : ['customer'];
+
+      return allowedRoles.map((role) => ({ value: role, label: getCrmRoleLabel(role) }));
+    },
+    [viewerRole]
   );
   const managerOptions = useMemo(
     () => [
@@ -1405,11 +1439,12 @@ function CreateUserDialog({
         .filter(
           (profile) =>
             profile.crm_role === 'agent' &&
+            (viewerRole === 'admin' || profile.assigned_manager_id === viewerId) &&
             (!form.assigned_manager_id || profile.assigned_manager_id === form.assigned_manager_id)
         )
         .map((profile) => ({ value: profile.id, label: getProfileDisplayName(profile) })),
     ],
-    [form.assigned_manager_id, profiles]
+    [form.assigned_manager_id, profiles, viewerId, viewerRole]
   );
 
   const handleRoleChange = (value: string) => {
@@ -1579,23 +1614,25 @@ function CreateUserDialog({
             <Dropdown value={form.crm_role} options={roleOptions} onChange={handleRoleChange} />
           </div>
 
-          {(form.crm_role === 'customer' || form.crm_role === 'agent') && (
+          {(form.crm_role === 'customer' || form.crm_role === 'agent') && viewerRole !== 'agent' && (
             <div className="space-y-4 rounded-2xl border border-[#006446]/12 bg-[#006446]/[0.03] px-4 py-4 md:col-span-2">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#006446]">Hierarchy assignment</p>
                 <p className="mt-1 text-sm text-slate-500">Assignments can be left empty and added later.</p>
               </div>
-              <div className={`grid gap-4 ${form.crm_role === 'customer' ? 'md:grid-cols-2' : ''} ${creating ? 'pointer-events-none opacity-60' : ''}`}>
-                <div className="space-y-2">
-                  <span className="text-sm font-medium text-slate-700">Superior manager</span>
-                  <Dropdown
-                    value={form.assigned_manager_id}
-                    options={managerOptions}
-                    onChange={handleManagerChange}
-                    searchable
-                    searchPlaceholder="Search managers..."
-                  />
-                </div>
+              <div className={`grid gap-4 ${form.crm_role === 'customer' && viewerRole === 'admin' ? 'md:grid-cols-2' : ''} ${creating ? 'pointer-events-none opacity-60' : ''}`}>
+                {viewerRole === 'admin' && (
+                  <div className="space-y-2">
+                    <span className="text-sm font-medium text-slate-700">Superior manager</span>
+                    <Dropdown
+                      value={form.assigned_manager_id}
+                      options={managerOptions}
+                      onChange={handleManagerChange}
+                      searchable
+                      searchPlaceholder="Search managers..."
+                    />
+                  </div>
+                )}
                 {form.crm_role === 'customer' && (
                   <div className="space-y-2">
                     <span className="text-sm font-medium text-slate-700">Assigned agent</span>
@@ -1635,7 +1672,13 @@ function CreateUserDialog({
         </div>
 
         <div className="sticky bottom-0 flex flex-col-reverse gap-3 border-t border-[#006446]/10 bg-[#f7fbf8] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-slate-500">Only CRM administrators can create accounts.</p>
+          <p className="text-xs text-slate-500">
+            {viewerRole === 'admin'
+              ? 'Administrators can create every CRM role.'
+              : viewerRole === 'superior_manager'
+              ? 'Superior managers can create agents and customers in their team.'
+              : 'Agents can create customers assigned directly to themselves.'}
+          </p>
           <div className="flex flex-col-reverse gap-3 sm:flex-row">
             <button
               type="button"
@@ -4314,7 +4357,7 @@ function CreateRecordCard({
 
 export default function CrmAdmin() {
   const navigate = useNavigate();
-  const { user, crmRole, signOut } = useAuth();
+  const { user, profile: viewerProfile, crmRole, signOut } = useAuth();
   const {
     branding,
     loading: loadingBranding,
@@ -4332,6 +4375,13 @@ export default function CrmAdmin() {
   const [selectedUserId, setSelectedUserId] = useState(initialViewState.selectedUserId || '');
   const [search, setSearch] = useState(initialViewState.search || '');
   const [activeTable, setActiveTable] = useState(initialViewState.activeTable || DEFAULT_TABLE);
+  const [directoryRoleFilter, setDirectoryRoleFilter] = useState<DirectoryRoleFilter>(() =>
+    normalizeDirectoryRoleFilter(initialViewState.directoryRoleFilter)
+  );
+  const [directoryPage, setDirectoryPage] = useState(() => Math.max(1, Number(initialViewState.directoryPage) || 1));
+  const [directoryPageSize, setDirectoryPageSize] = useState(() =>
+    normalizeDirectoryPageSize(initialViewState.directoryPageSize)
+  );
   const [tableData, setTableData] = useState<Record<string, AdminRow[]>>({});
   const [tableErrors, setTableErrors] = useState<Record<string, string | null>>({});
   const [loadingProfiles, setLoadingProfiles] = useState(true);
@@ -4373,14 +4423,15 @@ export default function CrmAdmin() {
   const [savingBalanceStatus, setSavingBalanceStatus] = useState(false);
   const viewerRole = crmRole;
   const isViewerAdmin = viewerRole === 'admin';
+  const canCreateUsers = viewerRole === 'admin' || viewerRole === 'superior_manager' || viewerRole === 'agent';
   const profileMap = useMemo(() => new Map(profiles.map((profile) => [profile.id, profile])), [profiles]);
   const directoryEyebrow = isViewerAdmin ? 'All profiles' : viewerRole === 'superior_manager' ? 'Assigned teams' : 'Assigned customers';
   const directoryTitle = isViewerAdmin ? 'Full CRM directory' : viewerRole === 'superior_manager' ? 'Managed agents and customers' : 'Your assigned customers';
   const directoryDescription = isViewerAdmin
     ? 'Search the complete CRM directory, then open any profile to manage account data, assignments, and activity.'
     : viewerRole === 'superior_manager'
-    ? 'This view is limited to agents and customer profiles assigned to you by an admin.'
-    : 'This view is limited to customer profiles assigned to you by an admin or superior manager.';
+    ? 'This view contains the agents and customers assigned to your team, including accounts you create.'
+    : 'This view contains customers assigned directly to you, including customers you create.';
   const workspaceLabel = isViewerAdmin
     ? 'Admin workspace'
     : viewerRole === 'superior_manager'
@@ -4394,15 +4445,36 @@ export default function CrmAdmin() {
 
   const filteredProfiles = useMemo(() => {
     const needle = search.trim().toLowerCase();
-    if (!needle) return profiles;
+    return profiles.filter((profile) => {
+      if (directoryRoleFilter !== 'all' && profile.crm_role !== directoryRoleFilter) return false;
+      if (!needle) return true;
 
-    return profiles.filter((profile) =>
-      [profile.full_name, profile.email, profile.id, profile.kyc_status, profile.crm_role]
+      return [profile.full_name, profile.email, profile.id, profile.kyc_status, profile.crm_role]
         .join(' ')
         .toLowerCase()
-        .includes(needle)
-    );
-  }, [profiles, search]);
+        .includes(needle);
+    });
+  }, [directoryRoleFilter, profiles, search]);
+  const directoryRoleCounts = useMemo(() => {
+    const counts: Record<DirectoryRoleFilter, number> = {
+      all: profiles.length,
+      customer: 0,
+      agent: 0,
+      superior_manager: 0,
+      admin: 0,
+    };
+
+    profiles.forEach((profile) => {
+      counts[profile.crm_role] += 1;
+    });
+    return counts;
+  }, [profiles]);
+  const directoryPageCount = Math.max(1, Math.ceil(filteredProfiles.length / directoryPageSize));
+  const safeDirectoryPage = Math.min(directoryPage, directoryPageCount);
+  const directoryPageStart = (safeDirectoryPage - 1) * directoryPageSize;
+  const paginatedProfiles = filteredProfiles.slice(directoryPageStart, directoryPageStart + directoryPageSize);
+  const firstVisibleDirectoryUser = filteredProfiles.length === 0 ? 0 : directoryPageStart + 1;
+  const lastVisibleDirectoryUser = Math.min(directoryPageStart + directoryPageSize, filteredProfiles.length);
 
   const selectedProfile = profiles.find((profile) => profile.id === selectedUserId) || null;
   const activeTables = TAB_TABLES;
@@ -4692,8 +4764,21 @@ export default function CrmAdmin() {
   }, [branding]);
 
   useEffect(() => {
-    updateCrmAdminViewState({ selectedUserId, activeTable, search });
-  }, [selectedUserId, activeTable, search]);
+    updateCrmAdminViewState({
+      selectedUserId,
+      activeTable,
+      search,
+      directoryRoleFilter,
+      directoryPage: safeDirectoryPage,
+      directoryPageSize,
+    });
+  }, [selectedUserId, activeTable, search, directoryRoleFilter, safeDirectoryPage, directoryPageSize]);
+
+  useEffect(() => {
+    if (directoryPage > directoryPageCount) {
+      setDirectoryPage(directoryPageCount);
+    }
+  }, [directoryPage, directoryPageCount]);
 
   useEffect(() => {
     const main = document.querySelector('main');
@@ -5572,8 +5657,19 @@ export default function CrmAdmin() {
   }
 
   async function handleCreateUser(draft: NewUserDraft) {
-    if (!isViewerAdmin) {
-      setNotice({ kind: 'error', message: 'Only CRM administrators can create users.' });
+    if (!canCreateUsers || !user) {
+      setNotice({ kind: 'error', message: 'Your CRM role cannot create users.' });
+      return;
+    }
+
+    const allowedRoles: CrmRole[] = isViewerAdmin
+      ? ['customer', 'agent', 'superior_manager', 'admin']
+      : viewerRole === 'superior_manager'
+      ? ['customer', 'agent']
+      : ['customer'];
+
+    if (!allowedRoles.includes(draft.crm_role)) {
+      setNotice({ kind: 'error', message: `${getCrmRoleLabel(viewerRole)} cannot create that CRM role.` });
       return;
     }
 
@@ -5626,10 +5722,19 @@ export default function CrmAdmin() {
         kyc_status: draft.kyc_status,
         crm_role: draft.crm_role,
         assigned_manager_id:
-          draft.crm_role === 'customer' || draft.crm_role === 'agent'
+          viewerRole === 'agent'
+            ? viewerProfile?.assigned_manager_id || null
+            : viewerRole === 'superior_manager'
+            ? user.id
+            : draft.crm_role === 'customer' || draft.crm_role === 'agent'
             ? draft.assigned_manager_id || null
             : null,
-        assigned_agent_id: draft.crm_role === 'customer' ? draft.assigned_agent_id || null : null,
+        assigned_agent_id:
+          viewerRole === 'agent'
+            ? user.id
+            : draft.crm_role === 'customer'
+            ? draft.assigned_agent_id || null
+            : null,
         email_confirm: draft.email_confirm,
       };
       const runCreateRequest = (accessToken: string) =>
@@ -5644,6 +5749,12 @@ export default function CrmAdmin() {
         });
 
       const runCompatibilityCreate = async (accessToken: string): Promise<CreateUserResponse> => {
+        if (!isViewerAdmin) {
+          throw new Error(
+            'Staff account creation requires the current admin-user-management function to be deployed.'
+          );
+        }
+
         if (!draft.email_confirm) {
           throw new Error(
             'Creating an unconfirmed login requires the current admin-user-management function. Ask the Supabase project owner to deploy it, or enable “Mark email as confirmed” and retry.'
@@ -6775,7 +6886,7 @@ export default function CrmAdmin() {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
-            {isViewerAdmin && (
+            {canCreateUsers && (
               <button
                 type="button"
                 onClick={() => {
@@ -6804,10 +6915,44 @@ export default function CrmAdmin() {
           <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#006446]" />
           <input
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setDirectoryPage(1);
+            }}
             placeholder="Search by name, email, or ID"
             className="w-full rounded-2xl border border-[#006446]/14 bg-white py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
           />
+        </div>
+
+        <div className="mt-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#006446]">Filter users</p>
+          <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Filter directory by CRM role">
+            {DIRECTORY_ROLE_FILTERS.map((filter) => {
+              const active = directoryRoleFilter === filter.value;
+
+              return (
+                <button
+                  key={filter.value}
+                  type="button"
+                  onClick={() => {
+                    setDirectoryRoleFilter(filter.value);
+                    setDirectoryPage(1);
+                  }}
+                  aria-pressed={active}
+                  className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
+                    active
+                      ? 'border-[#006446] bg-[#006446] text-white'
+                      : 'border-[#006446]/14 bg-white text-slate-700 hover:bg-[#006446]/[0.05] hover:text-[#006446]'
+                  }`}
+                >
+                  {filter.label}
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] ${active ? 'bg-white/18 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                    {directoryRoleCounts[filter.value]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -6818,12 +6963,12 @@ export default function CrmAdmin() {
           </div>
         ) : filteredProfiles.length === 0 ? (
           <div className="rounded-[28px] border border-dashed border-[#006446]/16 bg-white px-6 py-20 text-center">
-            <p className="text-lg font-semibold text-slate-900">No users matched this search</p>
-            <p className="mt-2 text-sm text-slate-500">Try a different name, email, or ID to find the customer you want to edit.</p>
+            <p className="text-lg font-semibold text-slate-900">No users match these filters</p>
+            <p className="mt-2 text-sm text-slate-500">Try another role or change the name, email, or ID search.</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredProfiles.map((profile) => {
+            {paginatedProfiles.map((profile) => {
               const copiedEmail = copiedCredentialKey === `${profile.id}:email`;
               const copiedPassword = copiedCredentialKey === `${profile.id}:password`;
               const managerProfile = profile.assigned_manager_id ? profileMap.get(profile.assigned_manager_id) : null;
@@ -6910,6 +7055,65 @@ export default function CrmAdmin() {
                 </article>
               );
             })}
+
+            <div className="flex flex-col gap-4 rounded-[24px] border border-[#006446]/12 bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-800">
+                  Showing {firstVisibleDirectoryUser}–{lastVisibleDirectoryUser} of {filteredProfiles.length} users
+                </p>
+                <p className="mt-1 text-xs text-slate-500">Only the users on this page are rendered.</p>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:items-end">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="mr-1 text-xs font-medium text-slate-500">Users per page</span>
+                  {DIRECTORY_PAGE_SIZES.map((pageSize) => (
+                    <button
+                      key={pageSize}
+                      type="button"
+                      onClick={() => {
+                        setDirectoryPageSize(pageSize);
+                        setDirectoryPage(1);
+                      }}
+                      aria-pressed={directoryPageSize === pageSize}
+                      className={`h-9 min-w-9 rounded-full border px-3 text-xs font-semibold transition-colors ${
+                        directoryPageSize === pageSize
+                          ? 'border-[#006446] bg-[#006446] text-white'
+                          : 'border-slate-200 bg-white text-slate-600 hover:border-[#006446]/25 hover:text-[#006446]'
+                      }`}
+                    >
+                      {pageSize}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDirectoryPage((current) => Math.max(1, current - 1))}
+                    disabled={safeDirectoryPage <= 1}
+                    aria-label="Previous directory page"
+                    className="inline-flex h-10 items-center justify-center gap-1 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:border-[#006446]/25 hover:text-[#006446] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </button>
+                  <span className="min-w-[96px] text-center text-sm font-semibold text-slate-700">
+                    Page {safeDirectoryPage} of {directoryPageCount}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setDirectoryPage((current) => Math.min(directoryPageCount, current + 1))}
+                    disabled={safeDirectoryPage >= directoryPageCount}
+                    aria-label="Next directory page"
+                    className="inline-flex h-10 items-center justify-center gap-1 rounded-full border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition-colors hover:border-[#006446]/25 hover:text-[#006446] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -6949,9 +7153,11 @@ export default function CrmAdmin() {
         </div>
       )}
 
-      {createUserDialogOpen && isViewerAdmin && (
+      {createUserDialogOpen && canCreateUsers && user && (
         <CreateUserDialog
           profiles={profiles}
+          viewerId={user.id}
+          viewerRole={viewerRole}
           creating={creatingUser}
           error={createUserError}
           onCancel={() => {

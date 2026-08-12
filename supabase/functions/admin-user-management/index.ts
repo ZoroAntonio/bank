@@ -161,7 +161,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: callerProfile, error: callerProfileError } = await adminClient
       .from("profiles")
-      .select("crm_role, is_admin")
+      .select("crm_role, is_admin, assigned_manager_id")
       .eq("id", caller.id)
       .maybeSingle();
 
@@ -228,10 +228,6 @@ Deno.serve(async (req: Request) => {
     const action = typeof payload.action === "string" ? payload.action : "update";
 
     if (action === "create") {
-      if (callerRole !== "admin") {
-        return jsonResponse({ error: "Only CRM administrators can create users" }, 403);
-      }
-
       const email = typeof payload.email === "string"
         ? payload.email.trim().toLowerCase()
         : "";
@@ -245,6 +241,18 @@ Deno.serve(async (req: Request) => {
       const emailConfirmed = payload.email_confirm !== false;
       let assignedManagerId = normalizeOptionalUuid(payload.assigned_manager_id);
       let assignedAgentId = normalizeOptionalUuid(payload.assigned_agent_id);
+
+      if (callerRole === "agent" && crmRole !== "customer") {
+        return jsonResponse({ error: "Agents can create customer accounts only" }, 403);
+      }
+
+      if (
+        callerRole === "superior_manager" &&
+        crmRole !== "customer" &&
+        crmRole !== "agent"
+      ) {
+        return jsonResponse({ error: "Superior managers can create agents and customers only" }, 403);
+      }
 
       if (!fullName) {
         return jsonResponse({ error: "Full name is required" }, 400);
@@ -262,7 +270,15 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ error: "A hierarchy assignment contains an invalid user ID" }, 400);
       }
 
-      if (crmRole === "admin" || crmRole === "superior_manager") {
+      // Staff-created accounts are always attached to the caller's scope. Do
+      // not trust hierarchy IDs supplied by the browser for these roles.
+      if (callerRole === "agent") {
+        assignedManagerId = callerProfile?.assigned_manager_id ?? null;
+        assignedAgentId = caller.id;
+      } else if (callerRole === "superior_manager") {
+        assignedManagerId = caller.id;
+        assignedAgentId = crmRole === "customer" ? assignedAgentId : null;
+      } else if (crmRole === "admin" || crmRole === "superior_manager") {
         assignedManagerId = null;
         assignedAgentId = null;
       } else if (crmRole === "agent") {
@@ -320,6 +336,13 @@ Deno.serve(async (req: Request) => {
           assignedManagerId !== agent.assigned_manager_id
         ) {
           return jsonResponse({ error: "The assigned agent belongs to a different superior manager" }, 400);
+        }
+
+        if (
+          callerRole === "superior_manager" &&
+          agent?.assigned_manager_id !== caller.id
+        ) {
+          return jsonResponse({ error: "Superior managers can assign only their own agents" }, 403);
         }
       }
 
