@@ -508,12 +508,12 @@ export default function DashboardOverview() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-slate-900 truncate">
-                    {tx.details || t('dashboardOverview.transactions.noDetails')}
+                    {tx.description || t('dashboardOverview.transactions.noDetails')}
                   </p>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
                     <p className="text-xs text-slate-400">{formatDate(tx.created_at)}</p>
                     <span className="rounded-full border border-[#006446]/12 bg-[#006446]/[0.03] px-2 py-0.5 text-[11px] font-medium text-[#006446]">
-                      {tx.poi || t('dashboardOverview.transactions.noPoi')}
+                      {tx.reference || t('dashboardOverview.transactions.noReference')}
                     </span>
                   </div>
                 </div>

@@ -108,7 +108,7 @@ export default function DashboardAnalytics() {
 
   const completedCount = filteredTxns.filter((t) => t.status === 'completed').length;
   const pendingCount = filteredTxns.filter((t) => t.status === 'pending').length;
-  const uniquePoiCount = new Set(filteredTxns.map((t) => t.poi).filter(Boolean)).size;
+  const uniqueReferenceCount = new Set(filteredTxns.map((t) => t.reference).filter(Boolean)).size;
 
   return (
     <div className="space-y-6">
@@ -229,9 +229,9 @@ export default function DashboardAnalytics() {
           </div>
 
           <div>
-            <p className="text-3xl font-bold text-slate-900">{uniquePoiCount}</p>
+            <p className="text-3xl font-bold text-slate-900">{uniqueReferenceCount}</p>
             <p className="mt-1 text-xs text-[#006446]/70">
-              {t('dashboardAnalytics.transactionSummary.uniquePois')}
+              {t('dashboardAnalytics.transactionSummary.uniqueReferences')}
             </p>
           </div>
         </div>

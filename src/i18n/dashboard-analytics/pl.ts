@@ -11,5 +11,5 @@ export const pl = {
   'dashboardAnalytics.transactionSummary.avgExpense': 'Średni wydatek',
   'dashboardAnalytics.transactionSummary.completed': 'Zrealizowane',
   'dashboardAnalytics.transactionSummary.pending': 'Oczekujące',
-  'dashboardAnalytics.transactionSummary.uniquePois': 'Unikalne punkty płatności',
+  'dashboardAnalytics.transactionSummary.uniqueReferences': 'Unikalne referencje',
 };

@@ -1150,9 +1150,10 @@ function buildCreateTemplate(table: TableConfig, userId: string, sampleRow?: Adm
     ? {
         user_id: userId,
         type: 'debit',
-        details: '',
-        comment: '',
-        poi: '',
+        amount: '',
+        description: '',
+        reference: '',
+        notes: '',
         status: 'completed',
       }
     : table.name === 'crypto_transactions'

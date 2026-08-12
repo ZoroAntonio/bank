@@ -26,7 +26,7 @@ export const lt = {
   'dashboardOverview.transactions.title': 'Naujausios operacijos',
   'dashboardOverview.transactions.empty': 'Operacijų dar nėra',
   'dashboardOverview.transactions.noDetails': 'Nėra informacijos',
-  'dashboardOverview.transactions.noPoi': 'Mokėjimo vieta nenurodyta',
+  'dashboardOverview.transactions.noReference': 'Nuoroda nenurodyta',
   'dashboardOverview.transactions.status.completed': 'Baigta',
   'dashboardOverview.transactions.status.pending': 'Laukiama',
   'dashboardOverview.transactions.status.failed': 'Nepavyko',

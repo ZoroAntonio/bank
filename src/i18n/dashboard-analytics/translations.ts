@@ -20,7 +20,7 @@ registerTranslations({
     'dashboardAnalytics.transactionSummary.avgExpense': 'Avg. Expense',
     'dashboardAnalytics.transactionSummary.completed': 'Completed',
     'dashboardAnalytics.transactionSummary.pending': 'Pending',
-    'dashboardAnalytics.transactionSummary.uniquePois': 'Unique POIs',
+    'dashboardAnalytics.transactionSummary.uniqueReferences': 'Unique References',
   },
 
   fr: {

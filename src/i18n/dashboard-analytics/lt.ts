@@ -11,5 +11,5 @@ export const lt = {
   'dashboardAnalytics.transactionSummary.avgExpense': 'Vid. Išlaidos',
   'dashboardAnalytics.transactionSummary.completed': 'Užbaigtos',
   'dashboardAnalytics.transactionSummary.pending': 'Laukiama',
-  'dashboardAnalytics.transactionSummary.uniquePois': 'Unikalios LV',
+  'dashboardAnalytics.transactionSummary.uniqueReferences': 'Unikalios nuorodos',
 };

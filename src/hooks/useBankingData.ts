@@ -6,16 +6,12 @@ export interface Transaction {
   id: string;
   user_id: string;
   type: string;
-  details: string;
-  comment: string;
-  poi: string;
+  amount: string;
+  description: string;
+  reference: string;
+  notes: string;
   status: string;
   created_at: string;
-  category: string;
-  description: string;
-  amount: number;
-  balance_after: number;
-  reference_number: string;
 }
 
 export interface Profile {
@@ -44,21 +40,16 @@ export function useTransactions() {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(50);
-    const normalized = ((data as Partial<Transaction>[]) || []).map((row) => ({
+    const normalized = ((data as Array<Partial<Transaction> & Record<string, unknown>>) || []).map((row) => ({
       id: String(row.id || ''),
       user_id: String(row.user_id || ''),
       type: String(row.type || ''),
-      details: String(row.details || row.description || ''),
-      comment: String(row.comment || ''),
-      poi: String(row.poi || row.reference_number || ''),
+      amount: String(row.amount ?? row.details ?? ''),
+      description: String(row.description ?? row.comment ?? ''),
+      reference: String(row.reference ?? row.poi ?? row.reference_number ?? ''),
+      notes: String(row.notes ?? ''),
       status: String(row.status || 'completed'),
       created_at: String(row.created_at || ''),
-      // Backwards-compatible aliases for older UI paths we still normalize locally.
-      category: String(row.poi || row.category || ''),
-      description: String(row.details || row.description || ''),
-      amount: Number(row.amount || 0),
-      balance_after: Number(row.balance_after || 0),
-      reference_number: String(row.poi || row.reference_number || ''),
     }));
     setTransactions(normalized);
     setLoading(false);

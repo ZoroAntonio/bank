@@ -31,6 +31,17 @@ export type PdfInvoiceDocument = {
   };
 };
 
+export type BankTransferInvoiceDocument = {
+  amount: string;
+  date: string;
+  description: string;
+  receiverFields: InvoiceField[];
+  senderFields: InvoiceField[];
+  status: string;
+  transferId: string;
+  transferType: string;
+};
+
 type PdfBuilder = {
   commands: string[];
   line: (x1: number, y1: number, x2: number, y2: number, color?: string, width?: number) => void;
@@ -654,4 +665,121 @@ export function createProfessionalInvoicePdf(invoice: PdfInvoiceDocument, brandi
 
   pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
   return pdf;
+}
+
+function buildSinglePagePdf(builder: PdfBuilder) {
+  const stream = builder.commands.join('\n');
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>',
+    `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
+  ];
+
+  let pdf = '%PDF-1.4\n';
+  const offsets = [0];
+
+  objects.forEach((object, index) => {
+    offsets.push(pdf.length);
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  });
+
+  const xrefOffset = pdf.length;
+  pdf += `xref\n0 ${objects.length + 1}\n`;
+  pdf += '0000000000 65535 f \n';
+
+  offsets.slice(1).forEach((offset) => {
+    pdf += `${String(offset).padStart(10, '0')} 00000 n \n`;
+  });
+
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  return pdf;
+}
+
+function drawInvoiceFieldList(
+  builder: PdfBuilder,
+  fields: InvoiceField[],
+  x: number,
+  startY: number,
+  maxLength: number,
+) {
+  let y = startY;
+
+  fields.forEach((field) => {
+    const value = sanitizeInvoiceValue(field.value);
+    if (!value) return;
+
+    const lines = wrapPdfText(`${field.label}: ${value}`, maxLength).slice(0, 3);
+    lines.forEach((line) => {
+      builder.text(line, x, y, 10, 'F1', '0.35 0.41 0.55');
+      y -= 15;
+    });
+  });
+}
+
+/** Bank-transfer-only layout matching the CRM transfer invoice design. */
+export function createBankTransferInvoicePdf(
+  invoice: BankTransferInvoiceDocument,
+  branding: BrandingSettings,
+) {
+  const builder = createPdfBuilder();
+  const blue = '0.00 0.39 0.27';
+  const blueSoft = '0.94 0.98 0.96';
+  const border = '0.79 0.81 0.84';
+  const muted = '0.35 0.41 0.55';
+  const qrPayload = [
+    `TRANSFER:${invoice.transferId}`,
+    `TYPE:${invoice.transferType}`,
+    `STATUS:${invoice.status}`,
+    `DATE:${invoice.date}`,
+    `AMOUNT:${invoice.amount}`,
+  ].join('|');
+
+  builder.rect(0, 670, 612, 122, blue);
+  builder.text(branding.brandName.toUpperCase(), 30, 724, 24, 'F2', '1 1 1');
+  builder.text('Transfer Invoice', 476, 737, 10, 'F1', '1 1 1');
+  builder.text(`Date: ${invoice.date}`, 454, 717, 10, 'F1', '1 1 1');
+
+  builder.text('Transaction Details', 30, 626, 13, 'F2', '0 0 0');
+  drawInvoiceFieldList(builder, [
+    { label: 'Transfer ID', value: invoice.transferId },
+    { label: 'Type', value: invoice.transferType },
+    { label: 'Status', value: invoice.status },
+    { label: 'Date Requested', value: invoice.date },
+  ], 30, 604, 58);
+
+  builder.text('SCAN TO VERIFY', 499, 647, 8, 'F2', muted);
+  drawQrCode(builder, qrPayload, 492, 548, 84);
+
+  builder.text('Sender Details', 30, 510, 12, 'F2', '0 0 0');
+  builder.text('Receiver Details', 304, 510, 12, 'F2', '0 0 0');
+  drawInvoiceFieldList(builder, invoice.senderFields, 30, 488, 42);
+  drawInvoiceFieldList(builder, invoice.receiverFields, 304, 488, 42);
+
+  const tableTop = 350;
+  const tableLeft = 30;
+  const tableWidth = 546;
+  const amountColumnX = 326;
+
+  builder.rect(tableLeft, tableTop, tableWidth, 48, blue);
+  builder.text('Description', 48, tableTop + 20, 11, 'F2', '1 1 1');
+  builder.text('Amount', amountColumnX + 18, tableTop + 20, 11, 'F2', '1 1 1');
+
+  builder.rect(tableLeft, tableTop - 52, tableWidth, 52, '1 1 1', border, 0.8);
+  builder.text('Transfer Amount', 48, tableTop - 31, 10, 'F1', '0.20 0.23 0.30');
+  builder.text(invoice.amount, 490, tableTop - 31, 10, 'F1', '0.20 0.23 0.30');
+  builder.line(amountColumnX, tableTop - 52, amountColumnX, tableTop, border, 0.8);
+
+  builder.rect(tableLeft, tableTop - 102, tableWidth, 50, blueSoft);
+  builder.text('Total Amount', 48, tableTop - 82, 11, 'F2', blue);
+  builder.text(invoice.amount, 344, tableTop - 82, 11, 'F2', blue);
+
+  builder.text('Notes:', 30, 216, 12, 'F2', '0 0 0');
+  wrapPdfText(invoice.description || 'Bank transfer', 90).slice(0, 7).forEach((line, index) => {
+    builder.text(line, 30, 196 - index * 15, 10, 'F1', muted);
+  });
+
+  return buildSinglePagePdf(builder);
 }

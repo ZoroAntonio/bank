@@ -162,14 +162,6 @@ function translateValue(t: Translate, group: 'types' | 'statuses', value: string
   return translated === key ? toSentenceCase(value) : translated;
 }
 
-function translateCategory(t: Translate, value: string) {
-  const normalized = value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_');
-  if (!normalized) return t('dashboardTransactions.common.empty');
-  const key = `dashboardTransactions.fiat.filters.categories.${normalized}`;
-  const translated = t(key);
-  return translated === key ? toSentenceCase(value) : translated;
-}
-
 function formatCount(count: number, prefix: 'fiat' | 'crypto', language: string, t: Translate) {
   const pluralCategory = new Intl.PluralRules(language).select(count);
   const key = `dashboardTransactions.${prefix}.count.${pluralCategory}`;
@@ -200,10 +192,11 @@ function getInvoiceLabels(t: Translate) {
 }
 
 function getFiatTransactionAmount(tx: Transaction, t: Translate, locale: string) {
-  const numericAmount = Number(tx.amount);
-  const currency = normalizeFiatCurrency(String((tx as Transaction & { currency?: string }).currency || '')) || 'USD';
+  const enteredAmount = tx.amount.trim();
+  const currency = 'USD';
+  const numericAmount = parseBareFiatAmount(enteredAmount);
 
-  if (Number.isFinite(numericAmount) && Math.abs(numericAmount) > 0.000001) {
+  if (numericAmount !== null) {
     return {
       amount: Math.abs(numericAmount),
       currency,
@@ -213,7 +206,7 @@ function getFiatTransactionAmount(tx: Transaction, t: Translate, locale: string)
     };
   }
 
-  const parsed = parseFiatAmountFromText(`${tx.details || ''} ${tx.description || ''} ${tx.comment || ''}`);
+  const parsed = parseFiatAmountFromText(enteredAmount);
   if (parsed) {
     const parsedCurrency = parsed.currency || currency;
     return {
@@ -222,20 +215,6 @@ function getFiatTransactionAmount(tx: Transaction, t: Translate, locale: string)
       hasAmount: true,
       signed: `${parsed.amount < 0 ? '-' : isBankingInflow(tx.type) ? '+' : '-'}${formatCurrencyByCode(Math.abs(parsed.amount), parsedCurrency, locale)}`,
       plain: formatCurrencyByCode(Math.abs(parsed.amount), parsedCurrency, locale),
-    };
-  }
-
-  // The current banking transaction schema stores the entered transaction value
-  // in `details` when no legacy `amount` column is present. Treat an amount-only
-  // details value (for example, "5860") as the transaction amount.
-  const detailsAmount = parseBareFiatAmount(tx.details || tx.description || '');
-  if (detailsAmount !== null) {
-    return {
-      amount: Math.abs(detailsAmount),
-      currency,
-      hasAmount: true,
-      signed: `${detailsAmount < 0 ? '-' : isBankingInflow(tx.type) ? '+' : '-'}${formatCurrencyByCode(Math.abs(detailsAmount), currency, locale)}`,
-      plain: formatCurrencyByCode(Math.abs(detailsAmount), currency, locale),
     };
   }
 
@@ -249,12 +228,10 @@ function getFiatTransactionAmount(tx: Transaction, t: Translate, locale: string)
 }
 
 function getFiatTransactionTitle(tx: Transaction, t: Translate) {
-  const details = tx.details || tx.description || '';
-
-  if (details && parseBareFiatAmount(details) === null) return details;
+  if (tx.description) return tx.description;
   if (tx.type) return translateValue(t, 'types', tx.type);
 
-  return tx.comment || t('dashboardTransactions.common.bankingTransaction');
+  return t('dashboardTransactions.common.bankingTransaction');
 }
 
 function getCryptoTransactionTitle(tx: CryptoTransaction, t: Translate) {
@@ -266,11 +243,11 @@ function getCryptoTransactionNotes(tx: CryptoTransaction, t: Translate) {
 }
 
 function buildFiatTransactionInvoice(tx: Transaction, formatDate: (dateStr: string) => string, t: Translate, locale: string): TransactionInvoice {
-  const reference = tx.reference_number || tx.poi || tx.id;
+  const reference = tx.reference || tx.id;
   const resolvedAmount = getFiatTransactionAmount(tx, t, locale);
-  const description = tx.comment.trim()
+  const description = tx.description.trim()
     || (tx.type ? translateValue(t, 'types', tx.type) : t('dashboardTransactions.common.bankingTransaction'));
-  const amount = (tx.details || tx.description).trim() || resolvedAmount.signed;
+  const amount = tx.amount.trim() || resolvedAmount.signed;
 
   return {
     title: description,
@@ -283,7 +260,7 @@ function buildFiatTransactionInvoice(tx: Transaction, formatDate: (dateStr: stri
     date: formatDate(tx.created_at),
     status: translateValue(t, 'statuses', tx.status || 'completed'),
     amount,
-    notes: t('dashboardTransactions.common.bankingConfirmation'),
+    notes: tx.notes.trim() || t('dashboardTransactions.common.bankingConfirmation'),
     fields: [
       { label: t('dashboardTransactions.details.transactionDate'), value: formatDate(tx.created_at) },
       { label: t('dashboardTransactions.details.transactionType'), value: translateValue(t, 'types', tx.type) },
@@ -291,11 +268,8 @@ function buildFiatTransactionInvoice(tx: Transaction, formatDate: (dateStr: stri
       { label: t('dashboardTransactions.details.referenceId'), value: reference },
       { label: t('dashboardTransactions.details.transactionId'), value: tx.id },
       { label: t('dashboardTransactions.details.amount'), value: amount },
-      { label: t('dashboardTransactions.details.balanceAfter'), value: formatCurrencyByCode(Number(tx.balance_after || 0), resolvedAmount.currency, locale) },
-      { label: t('dashboardTransactions.details.poi'), value: tx.poi },
-      { label: t('dashboardTransactions.details.category'), value: tx.category ? translateCategory(t, tx.category) : tx.category },
-      { label: t('dashboardTransactions.details.comment'), value: tx.comment },
-      { label: t('dashboardTransactions.details.details'), value: tx.details || tx.description },
+      { label: t('dashboardTransactions.details.description'), value: tx.description },
+      { label: t('dashboardTransactions.details.notes'), value: tx.notes },
     ],
   };
 }
@@ -486,9 +460,10 @@ export default function DashboardTransactions() {
     if (selectedStatus !== 'all' && tx.status !== selectedStatus) return false;
     if (
       search &&
-      !tx.details.toLowerCase().includes(search.toLowerCase()) &&
-      !tx.comment.toLowerCase().includes(search.toLowerCase()) &&
-      !tx.poi.toLowerCase().includes(search.toLowerCase())
+      !tx.description.toLowerCase().includes(search.toLowerCase()) &&
+      !tx.reference.toLowerCase().includes(search.toLowerCase()) &&
+      !tx.amount.toLowerCase().includes(search.toLowerCase()) &&
+      !tx.notes.toLowerCase().includes(search.toLowerCase())
     ) return false;
     return true;
   });
@@ -744,7 +719,7 @@ function FiatTransactionDetailModal({
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-slate-950">{amount}</p>
-          <p className="text-xs text-slate-500">{transaction.reference_number || transaction.poi || transaction.id}</p>
+          <p className="text-xs text-slate-500">{transaction.reference || transaction.id}</p>
         </div>
         <StatusBadge status={transaction.status || 'completed'} t={t} />
       </div>
@@ -754,15 +729,9 @@ function FiatTransactionDetailModal({
         <DetailRow label={t('dashboardTransactions.details.transactionType')} value={translateValue(t, 'types', transaction.type)} />
         <DetailRow label={t('dashboardTransactions.details.status')} value={translateValue(t, 'statuses', transaction.status || 'completed')} />
         <DetailRow label={t('dashboardTransactions.details.amount')} value={amount} />
-        <DetailRow label={t('dashboardTransactions.details.balanceAfter')} value={formatCurrencyByCode(Number(transaction.balance_after || 0), resolvedAmount.currency, language)} />
-        <DetailRow label={t('dashboardTransactions.details.reference')} value={transaction.reference_number || transaction.poi || transaction.id} mono />
-        <DetailRow label={t('dashboardTransactions.details.poi')} value={transaction.poi} />
-        <DetailRow
-          label={t('dashboardTransactions.details.category')}
-          value={transaction.category ? translateCategory(t, transaction.category) : transaction.category}
-        />
-        <DetailRow label={t('dashboardTransactions.details.comment')} value={transaction.comment} />
-        <DetailRow label={t('dashboardTransactions.details.details')} value={transaction.details || transaction.description} />
+        <DetailRow label={t('dashboardTransactions.details.reference')} value={transaction.reference || transaction.id} mono />
+        <DetailRow label={t('dashboardTransactions.details.description')} value={transaction.description} />
+        <DetailRow label={t('dashboardTransactions.details.notes')} value={transaction.notes} />
       </div>
     </TransactionDetailShell>
   );
@@ -910,7 +879,7 @@ function FiatTransactionsView({
           <div className="divide-y divide-[#006446]/10">
             {filtered.map((tx) => {
               const title = getFiatTransactionTitle(tx, t);
-              const commentPreview = tx.comment && tx.comment !== title ? tx.comment : '';
+              const notesPreview = tx.notes && tx.notes !== title ? tx.notes : '';
 
               return (
                 <button
@@ -928,13 +897,13 @@ function FiatTransactionsView({
                     <p className="text-sm font-medium text-slate-900 truncate">
                       {title || t('dashboardTransactions.common.noDetails')}
                     </p>
-                    {commentPreview ? (
-                      <p className="mt-1 truncate text-xs text-slate-500">{commentPreview}</p>
+                    {notesPreview ? (
+                      <p className="mt-1 truncate text-xs text-slate-500">{notesPreview}</p>
                     ) : null}
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       <span className="text-xs text-slate-400">{formatDate(tx.created_at)}</span>
                       <span className="rounded-full border border-[#006446]/12 bg-[#006446]/[0.03] px-2 py-0.5 text-[11px] font-medium text-[#006446]">
-                        POI: {tx.poi || t('dashboardTransactions.common.empty')}
+                        {t('dashboardTransactions.details.reference')}: {tx.reference || t('dashboardTransactions.common.empty')}
                       </span>
                     </div>
                   </div>

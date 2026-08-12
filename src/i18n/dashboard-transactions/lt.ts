@@ -109,6 +109,7 @@ export const lt = {
   'dashboardTransactions.details.comment': 'Komentaras',
   'dashboardTransactions.details.details': 'Detalės',
   'dashboardTransactions.details.description': 'Aprašymas',
+  'dashboardTransactions.details.notes': 'Pastabos',
   'dashboardTransactions.details.asset': 'Turtas',
   'dashboardTransactions.details.pricePerUnit': 'Vieneto kaina',
   'dashboardTransactions.details.totalValue': 'Bendra vertė',

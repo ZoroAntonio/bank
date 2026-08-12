@@ -116,6 +116,7 @@ export const pl = {
   'dashboardTransactions.details.comment': 'Komentarz',
   'dashboardTransactions.details.details': 'Szczegóły',
   'dashboardTransactions.details.description': 'Opis',
+  'dashboardTransactions.details.notes': 'Notatki',
   'dashboardTransactions.details.asset': 'Aktywo',
   'dashboardTransactions.details.pricePerUnit': 'Cena jednostkowa',
   'dashboardTransactions.details.totalValue': 'Łączna wartość',

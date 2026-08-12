@@ -127,6 +127,7 @@ registerTranslations({
     'dashboardTransactions.details.comment': 'Comment',
     'dashboardTransactions.details.details': 'Details',
     'dashboardTransactions.details.description': 'Description',
+    'dashboardTransactions.details.notes': 'Notes',
     'dashboardTransactions.details.asset': 'Asset',
     'dashboardTransactions.details.pricePerUnit': 'Price per Unit',
     'dashboardTransactions.details.totalValue': 'Total Value',
