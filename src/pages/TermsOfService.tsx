@@ -385,16 +385,12 @@ export default function TermsOfService() {
                 </p>
 
                 <div className="mt-6 rounded-2xl border border-[#006446]/14 bg-[#006446]/[0.03] p-6">
-                  <p className="font-semibold text-slate-950">{branding.brandName}</p>
-                  <p className="mt-2 text-slate-700">
-                    {t('terms.contact.office')}
-                  </p>
-                  <div className="mt-4 space-y-2 text-slate-700">
-                    <p>{t('terms.contact.address1')}</p>
-                    <p>{t('terms.contact.address2')}</p>
-                    <p>{t('terms.contact.email')}</p>
-                    <p>{t('terms.contact.phone')}</p>
-                  </div>
+                  <a
+                    href={`mailto:${branding.legalContactEmail}`}
+                    className="break-all text-base font-semibold text-[#006446] underline decoration-[#006446]/30 underline-offset-4 hover:decoration-[#006446]"
+                  >
+                    {branding.legalContactEmail}
+                  </a>
                 </div>
               </section>
 

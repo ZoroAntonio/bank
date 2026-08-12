@@ -40,6 +40,7 @@ export type BrandingSettings = {
   depositorProtectionTitle: string;
   depositorProtectionDescription: string;
   depositorProtectionUrl: string;
+  legalContactEmail: string;
   updatedAt: string | null;
 };
 
@@ -63,6 +64,7 @@ type BrandingRow = {
   depositor_protection_title?: string | null;
   depositor_protection_description?: string | null;
   depositor_protection_url?: string | null;
+  legal_contact_email?: string | null;
   updated_at?: string | null;
 };
 
@@ -87,6 +89,7 @@ export type BrandingUpdate = Pick<
   | 'depositorProtectionTitle'
   | 'depositorProtectionDescription'
   | 'depositorProtectionUrl'
+  | 'legalContactEmail'
 >;
 
 export type BrandingSaveResult = {
@@ -128,6 +131,7 @@ export const DEFAULT_BRANDING: BrandingSettings = {
   depositorProtectionTitle: '',
   depositorProtectionDescription: '',
   depositorProtectionUrl: 'https://www.gov.pl/web/finance/protection-of-depositors',
+  legalContactEmail: 'legal@skok.bank',
   updatedAt: null,
 };
 
@@ -173,6 +177,7 @@ function normalizeBranding(value: Partial<BrandingSettings> | BrandingRow | null
     depositorProtectionTitle: cleanOptionalText('depositorProtectionTitle' in (value || {}) ? (value as Partial<BrandingSettings>).depositorProtectionTitle : (value as BrandingRow | null | undefined)?.depositor_protection_title),
     depositorProtectionDescription: cleanOptionalText('depositorProtectionDescription' in (value || {}) ? (value as Partial<BrandingSettings>).depositorProtectionDescription : (value as BrandingRow | null | undefined)?.depositor_protection_description),
     depositorProtectionUrl: cleanHttpUrl('depositorProtectionUrl' in (value || {}) ? (value as Partial<BrandingSettings>).depositorProtectionUrl : (value as BrandingRow | null | undefined)?.depositor_protection_url, DEFAULT_BRANDING.depositorProtectionUrl),
+    legalContactEmail: cleanText('legalContactEmail' in (value || {}) ? (value as Partial<BrandingSettings>).legalContactEmail : (value as BrandingRow | null | undefined)?.legal_contact_email, DEFAULT_BRANDING.legalContactEmail).toLowerCase(),
     updatedAt: cleanText('updatedAt' in (value || {}) ? (value as Partial<BrandingSettings>).updatedAt : (value as BrandingRow | null | undefined)?.updated_at, '') || null,
   };
 }
@@ -318,6 +323,7 @@ function toRowPayload(branding: BrandingSettings) {
     depositor_protection_title: branding.depositorProtectionTitle,
     depositor_protection_description: branding.depositorProtectionDescription,
     depositor_protection_url: branding.depositorProtectionUrl,
+    legal_contact_email: branding.legalContactEmail,
     updated_at: new Date().toISOString(),
   };
 }
@@ -537,7 +543,7 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await supabase
         .from('site_branding')
-        .select('brand_name, brand_keyword, navbar_logo_url, footer_logo_url, favicon_ico_url, favicon_16_url, favicon_32_url, apple_touch_icon_url, favicon_192_url, favicon_512_url, mfi_id, country_code, mfi_code, institutional_title, institutional_description, mfi_id_note, depositor_protection_title, depositor_protection_description, depositor_protection_url, updated_at')
+        .select('brand_name, brand_keyword, navbar_logo_url, footer_logo_url, favicon_ico_url, favicon_16_url, favicon_32_url, apple_touch_icon_url, favicon_192_url, favicon_512_url, mfi_id, country_code, mfi_code, institutional_title, institutional_description, mfi_id_note, depositor_protection_title, depositor_protection_description, depositor_protection_url, legal_contact_email, updated_at')
         .eq('id', BRANDING_ROW_ID)
         .maybeSingle();
 
@@ -584,7 +590,7 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase
       .from('site_branding')
       .upsert(toRowPayload(nextBranding), { onConflict: 'id' })
-      .select('brand_name, brand_keyword, navbar_logo_url, footer_logo_url, favicon_ico_url, favicon_16_url, favicon_32_url, apple_touch_icon_url, favicon_192_url, favicon_512_url, mfi_id, country_code, mfi_code, institutional_title, institutional_description, mfi_id_note, depositor_protection_title, depositor_protection_description, depositor_protection_url, updated_at')
+      .select('brand_name, brand_keyword, navbar_logo_url, footer_logo_url, favicon_ico_url, favicon_16_url, favicon_32_url, apple_touch_icon_url, favicon_192_url, favicon_512_url, mfi_id, country_code, mfi_code, institutional_title, institutional_description, mfi_id_note, depositor_protection_title, depositor_protection_description, depositor_protection_url, legal_contact_email, updated_at')
       .single();
 
     if (error) {

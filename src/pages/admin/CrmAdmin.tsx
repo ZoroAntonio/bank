@@ -2218,6 +2218,7 @@ function toBrandingForm(branding: BrandingSettings): BrandingForm {
     depositorProtectionTitle: branding.depositorProtectionTitle,
     depositorProtectionDescription: branding.depositorProtectionDescription,
     depositorProtectionUrl: branding.depositorProtectionUrl,
+    legalContactEmail: branding.legalContactEmail,
   };
 }
 
@@ -2272,6 +2273,7 @@ function BrandingSettingsCard({
     depositorProtectionTitle: form.depositorProtectionTitle.trim(),
     depositorProtectionDescription: form.depositorProtectionDescription.trim(),
     depositorProtectionUrl: form.depositorProtectionUrl.trim() || DEFAULT_BRANDING.depositorProtectionUrl,
+    legalContactEmail: form.legalContactEmail.trim().toLowerCase() || DEFAULT_BRANDING.legalContactEmail,
     updatedAt: savedBranding.updatedAt,
   };
   const referencePreview = `${getBrandReferencePrefix(previewBranding)}-A1B2C3D4`;
@@ -2571,6 +2573,24 @@ function BrandingSettingsCard({
                 className="w-full rounded-2xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
               />
             </label>
+
+            <div className="mt-5 border-t border-[#006446]/10 pt-5">
+              <p className="text-sm font-semibold text-slate-900">Legal contact</p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                This single email address appears in Contact Us on the Privacy Policy, Terms of Service, and Disclosures pages.
+              </p>
+              <label className="mt-4 block space-y-2">
+                <span className="text-sm font-medium text-slate-700">Legal contact email</span>
+                <input
+                  type="email"
+                  value={form.legalContactEmail}
+                  onChange={(event) => onFieldChange('legalContactEmail', event.target.value)}
+                  placeholder="legal@example.com"
+                  autoComplete="email"
+                  className="w-full rounded-2xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
+                />
+              </label>
+            </div>
           </div>
         </div>
 
@@ -4582,6 +4602,11 @@ export default function CrmAdmin() {
         throw new Error('Depositor-protection URL must start with http:// or https://.');
       }
 
+      const legalContactEmail = brandingForm.legalContactEmail.trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(legalContactEmail)) {
+        throw new Error('Enter a valid legal contact email address.');
+      }
+
       const payload: BrandingUpdate = {
         brandName: brandingForm.brandName.trim() || DEFAULT_BRANDING.brandName,
         brandKeyword: brandingForm.brandKeyword.trim() || DEFAULT_BRANDING.brandKeyword,
@@ -4602,13 +4627,14 @@ export default function CrmAdmin() {
         depositorProtectionTitle: brandingForm.depositorProtectionTitle.trim(),
         depositorProtectionDescription: brandingForm.depositorProtectionDescription.trim(),
         depositorProtectionUrl,
+        legalContactEmail,
       };
 
       const result = await saveBranding(payload);
       setNotice({
         kind: result.persisted === 'remote' ? 'success' : 'error',
         message: result.persisted === 'remote'
-          ? 'Branding, favicons, and institutional settings updated across the site.'
+          ? 'Branding, favicons, institutional settings, and legal contact email updated across the site.'
           : `Branding was saved only in this browser. Supabase rejected the update: ${result.error || 'unknown error'}`,
       });
     } catch (error) {
