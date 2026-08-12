@@ -4726,6 +4726,7 @@ export default function CrmAdmin() {
   useEffect(() => {
     const scrollTop = initialViewState.scrollTop || 0;
     if (restoredScrollRef.current || scrollTop <= 0) return;
+    if (loadingProfiles || (selectedUserId && loadingTables)) return;
 
     const main = mainScrollRef.current ?? document.querySelector('main');
     if (!(main instanceof HTMLElement)) return;
@@ -4740,7 +4741,7 @@ export default function CrmAdmin() {
       restoreScroll();
       window.setTimeout(restoreScroll, 120);
     });
-  }, [activeConfig?.name, initialViewState.scrollTop, loadingProfiles, loadingTables, selectedProfile]);
+  }, [activeConfig?.name, initialViewState.scrollTop, loadingProfiles, loadingTables, selectedProfile, selectedUserId]);
 
   useEffect(() => {
     if (!activeConfig) return;

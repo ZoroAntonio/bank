@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const nextRole = data.is_admin
         ? 'admin'
         : normalizeCrmRole(data.crm_role, 'customer');
-      setProfile({
+      const nextProfile = {
         full_name: data.full_name || '',
         email: data.email || '',
         account_iban: data.account_iban || '',
@@ -76,12 +76,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         is_admin: nextRole === 'admin',
         assigned_manager_id: data.assigned_manager_id || null,
         assigned_agent_id: data.assigned_agent_id || null,
-      });
+      };
+      profileRef.current = nextProfile;
+      setProfile(nextProfile);
       setKycStatus(data.kyc_status as KycStatus);
       setCrmRole(nextRole);
       setIsAdmin(nextRole === 'admin');
       setIsCrmStaff(isStaffCrmRole(nextRole));
     } else {
+      profileRef.current = null;
       setProfile(null);
       setKycStatus(null);
       setIsAdmin(false);
@@ -105,6 +108,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setSession(null);
       setUser(null);
+      userRef.current = null;
+      profileRef.current = null;
       setProfile(null);
       setKycStatus(null);
       setIsAdmin(false);
@@ -113,24 +118,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     };
 
-    const applySession = (nextSession: Session) => {
+    const applySession = (
+      nextSession: Session,
+      options: { refreshProfile?: boolean; replaceUser?: boolean } = {},
+    ) => {
       if (!active) return;
 
       setSession(nextSession);
-      setUser(nextSession.user);
 
       const existingUser = userRef.current;
       const existingProfile = profileRef.current;
+      const sameUser = existingUser?.id === nextSession.user.id;
       const shouldBlockForProfile =
-        !existingUser || existingUser.id !== nextSession.user.id || !existingProfile;
+        !sameUser || !existingProfile;
+
+      // TOKEN_REFRESHED and repeated SIGNED_IN events are normal when returning
+      // to a browser tab. Preserve the existing User object so route guards and
+      // data screens do not interpret token maintenance as a new login.
+      if (!sameUser || options.replaceUser) {
+        setUser(nextSession.user);
+        userRef.current = nextSession.user;
+      }
 
       if (shouldBlockForProfile) {
         setLoading(true);
       }
 
-      void fetchProfileState(nextSession.user.id).finally(() => {
-        if (active) setLoading(false);
-      });
+      if (shouldBlockForProfile || options.refreshProfile) {
+        void fetchProfileState(nextSession.user.id).finally(() => {
+          if (active) setLoading(false);
+        });
+      }
     };
 
     const initialAuthVersion = authEventVersion;
@@ -148,7 +166,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const eventVersion = ++authEventVersion;
 
       if (nextSession) {
-        applySession(nextSession);
+        applySession(nextSession, {
+          refreshProfile: event === 'USER_UPDATED',
+          replaceUser: event === 'USER_UPDATED',
+        });
         return;
       }
 

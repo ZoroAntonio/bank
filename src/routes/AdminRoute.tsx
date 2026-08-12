@@ -15,33 +15,40 @@ type IpGateState =
 export default function AdminRoute({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const { user, loading, isCrmStaff, signOut } = useAuth();
+  const userId = user?.id ?? null;
   const [ipGate, setIpGate] = useState<IpGateState>({ kind: 'checking' });
 
   const verifyIpAccess = useCallback(async (showLoading = true) => {
-    if (!user || !isCrmStaff) return;
+    if (!userId || !isCrmStaff) return;
 
-    if (showLoading) setIpGate({ kind: 'checking' });
+    if (showLoading) {
+      setIpGate((current) => current.kind === 'allowed' ? current : { kind: 'checking' });
+    }
+
     try {
       const status = await checkCrmIpAccess();
       setIpGate({ kind: status.allowed ? 'allowed' : 'denied', status });
     } catch (error) {
-      setIpGate({
-        kind: 'error',
-        message: error instanceof Error ? error.message : 'Could not verify this IP address.',
+      const message = error instanceof Error ? error.message : 'Could not verify this IP address.';
+      setIpGate((current) => {
+        // A transient background failure must never unmount a CRM session that
+        // already passed the access check. The next interval retries silently.
+        if (!showLoading && current.kind === 'allowed') return current;
+        return { kind: 'error', message };
       });
     }
-  }, [isCrmStaff, user]);
+  }, [isCrmStaff, userId]);
 
   useEffect(() => {
     void verifyIpAccess();
 
-    const verifyInBackground = () => void verifyIpAccess(false);
+    const verifyInBackground = () => {
+      if (document.visibilityState === 'visible') void verifyIpAccess(false);
+    };
     const intervalId = window.setInterval(verifyInBackground, 5 * 60 * 1000);
-    window.addEventListener('focus', verifyInBackground);
 
     return () => {
       window.clearInterval(intervalId);
-      window.removeEventListener('focus', verifyInBackground);
     };
   }, [verifyIpAccess]);
 
