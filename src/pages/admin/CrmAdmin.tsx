@@ -2253,6 +2253,9 @@ function BrandingSettingsCard({
   onReset: () => void;
   onRefresh: () => Promise<void>;
 }) {
+  const navbarLogoInputRef = useRef<HTMLInputElement>(null);
+  const footerLogoInputRef = useRef<HTMLInputElement>(null);
+  const faviconInputRef = useRef<HTMLInputElement>(null);
   const previewBranding: BrandingSettings = {
     brandName: form.brandName.trim() || DEFAULT_BRANDING.brandName,
     brandKeyword: form.brandKeyword.trim() || DEFAULT_BRANDING.brandKeyword,
@@ -2293,19 +2296,32 @@ function BrandingSettingsCard({
     if (file) void onUploadFavicon(file);
   };
 
-  const uploadButton = (slot: 'navbar' | 'footer', label: string) => (
-    <label className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-[#006446]/12 bg-white px-4 py-2 text-sm font-semibold text-[#006446] transition-colors hover:bg-[#006446]/[0.05] ${uploadingLogo ? 'pointer-events-none opacity-70' : ''}`}>
-      {uploadingLogo === slot ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-      {label}
-      <input
-        type="file"
-        accept="image/*"
-        className="sr-only"
-        disabled={Boolean(uploadingLogo)}
-        onChange={handleFileChange(slot)}
-      />
-    </label>
-  );
+  const uploadButton = (slot: 'navbar' | 'footer', label: string) => {
+    const inputRef = slot === 'navbar' ? navbarLogoInputRef : footerLogoInputRef;
+
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={Boolean(uploadingLogo)}
+          className="inline-flex items-center justify-center gap-2 rounded-full border border-[#006446]/12 bg-white px-4 py-2 text-sm font-semibold text-[#006446] transition-colors hover:bg-[#006446]/[0.05] disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {uploadingLogo === slot ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+          {label}
+        </button>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          tabIndex={-1}
+          disabled={Boolean(uploadingLogo)}
+          onChange={handleFileChange(slot)}
+        />
+      </>
+    );
+  };
 
   return (
     <section className="overflow-hidden rounded-[32px] border border-[#006446]/14 bg-white shadow-[0_24px_60px_-48px_rgba(0,100,70,0.45)]">
@@ -2443,17 +2459,24 @@ function BrandingSettingsCard({
                     className="h-full w-full object-contain"
                   />
                 </div>
-                <label className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-[#006446]/12 bg-white px-4 py-2 text-sm font-semibold text-[#006446] transition-colors hover:bg-[#006446]/[0.05] ${uploadingLogo ? 'pointer-events-none opacity-70' : ''}`}>
+                <button
+                  type="button"
+                  onClick={() => faviconInputRef.current?.click()}
+                  disabled={Boolean(uploadingLogo)}
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-[#006446]/12 bg-white px-4 py-2 text-sm font-semibold text-[#006446] transition-colors hover:bg-[#006446]/[0.05] disabled:cursor-not-allowed disabled:opacity-70"
+                >
                   {uploadingLogo === 'favicon' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                   {uploadingLogo === 'favicon' ? 'Generating…' : 'Upload favicon source'}
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                    className="sr-only"
-                    disabled={Boolean(uploadingLogo)}
-                    onChange={handleFaviconFileChange}
-                  />
-                </label>
+                </button>
+                <input
+                  ref={faviconInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  className="hidden"
+                  tabIndex={-1}
+                  disabled={Boolean(uploadingLogo)}
+                  onChange={handleFaviconFileChange}
+                />
               </div>
             </div>
 

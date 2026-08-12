@@ -5,7 +5,6 @@ import { CookieConsentProvider } from './contexts/CookieConsentContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { BrandingProvider } from './contexts/BrandingContext';
 import ScrollToTop from './components/ScrollToTop';
-import SeoMetadata from './components/SeoMetadata';
 import PublicLayout from './components/layout/PublicLayout';
 import ProtectedRoute from './routes/ProtectedRoute';
 import AdminRoute from './routes/AdminRoute';
@@ -82,7 +81,6 @@ export default function App() {
   return (
     <Router>
       <BrandingProvider>
-        <SeoMetadata />
         <LanguageProvider>
           <CookieConsentProvider>
             <AuthProvider>

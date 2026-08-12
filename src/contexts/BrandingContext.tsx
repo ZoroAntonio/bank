@@ -701,7 +701,6 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
     document.title = branding.brandName;
     document.head.querySelector<HTMLMetaElement>('meta[name="application-name"]')?.setAttribute('content', branding.brandName);
     document.head.querySelector<HTMLMetaElement>('meta[name="apple-mobile-web-app-title"]')?.setAttribute('content', branding.brandName);
-    document.head.querySelector<HTMLMetaElement>('meta[property="og:site_name"]')?.setAttribute('content', branding.brandName);
     updateHeadLink('icon', 'any', branding.faviconIcoUrl, 'image/x-icon');
     updateHeadLink('icon', '16x16', branding.favicon16Url, 'image/png');
     updateHeadLink('icon', '32x32', branding.favicon32Url, 'image/png');
