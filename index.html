@@ -57,6 +57,52 @@
       }
     </script>
     <title>SKOK Bank | Skok Wybrzeże Bank</title>
+    <script>
+      (() => {
+        const showNeutralBootstrap = () => {
+          document.title = 'Loading site settings';
+          const neutralIcon = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"%3E%3Ccircle cx="32" cy="32" r="22" fill="%23006446"/%3E%3C/svg%3E';
+          document.head.querySelectorAll('link[rel="icon"], link[rel="apple-touch-icon"]').forEach((link) => {
+            link.setAttribute('href', neutralIcon);
+          });
+        };
+
+        try {
+          const cached = JSON.parse(localStorage.getItem('site-branding:settings') || 'null');
+          if (!cached || typeof cached !== 'object') {
+            showNeutralBootstrap();
+            return;
+          }
+
+          const setMeta = (selector, value) => {
+            if (!value) return;
+            document.head.querySelector(selector)?.setAttribute('content', value);
+          };
+          const setLink = (rel, sizes, value, type) => {
+            if (!value) return;
+            const link = document.head.querySelector(`link[rel="${rel}"][sizes="${sizes}"]`);
+            if (!link) return;
+            link.setAttribute('href', value);
+            if (type) link.setAttribute('type', type);
+          };
+
+          if (typeof cached.brandName === 'string' && cached.brandName.trim()) {
+            document.title = cached.brandName.trim();
+            setMeta('meta[name="application-name"]', cached.brandName.trim());
+            setMeta('meta[name="apple-mobile-web-app-title"]', cached.brandName.trim());
+            setMeta('meta[property="og:site_name"]', cached.brandName.trim());
+          }
+
+          setLink('icon', 'any', cached.faviconIcoUrl, 'image/x-icon');
+          setLink('icon', '16x16', cached.favicon16Url, 'image/png');
+          setLink('icon', '32x32', cached.favicon32Url, 'image/png');
+          setLink('icon', '192x192', cached.favicon192Url, 'image/png');
+          setLink('apple-touch-icon', '180x180', cached.appleTouchIconUrl, 'image/png');
+        } catch {
+          showNeutralBootstrap();
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -201,6 +201,12 @@ type DeleteUserResponse = {
 
 type BrandingForm = BrandingUpdate;
 
+const PROFILE_RECORD_SELECT = 'id, full_name, email, account_iban, created_at, updated_at, kyc_status, crm_role, is_admin, assigned_manager_id, assigned_agent_id, plain_password';
+
+function waitForProfileTrigger(delayMs = 200) {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, delayMs));
+}
+
 async function insertAdminRow(tableName: string, payload: Record<string, unknown>) {
   let result = await supabase.from(tableName).insert(payload).select().single();
 
@@ -2124,6 +2130,21 @@ function toBrandingForm(branding: BrandingSettings): BrandingForm {
     brandKeyword: branding.brandKeyword,
     navbarLogoUrl: branding.navbarLogoUrl,
     footerLogoUrl: branding.footerLogoUrl,
+    faviconIcoUrl: branding.faviconIcoUrl,
+    favicon16Url: branding.favicon16Url,
+    favicon32Url: branding.favicon32Url,
+    appleTouchIconUrl: branding.appleTouchIconUrl,
+    favicon192Url: branding.favicon192Url,
+    favicon512Url: branding.favicon512Url,
+    mfiId: branding.mfiId,
+    countryCode: branding.countryCode,
+    mfiCode: branding.mfiCode,
+    institutionalTitle: branding.institutionalTitle,
+    institutionalDescription: branding.institutionalDescription,
+    mfiIdNote: branding.mfiIdNote,
+    depositorProtectionTitle: branding.depositorProtectionTitle,
+    depositorProtectionDescription: branding.depositorProtectionDescription,
+    depositorProtectionUrl: branding.depositorProtectionUrl,
   };
 }
 
@@ -2138,6 +2159,7 @@ function BrandingSettingsCard({
   onFieldChange,
   onSyncLogosChange,
   onUploadLogo,
+  onUploadFavicon,
   onSave,
   onReset,
   onRefresh,
@@ -2148,10 +2170,11 @@ function BrandingSettingsCard({
   loading: boolean;
   remoteAvailable: boolean;
   saving: boolean;
-  uploadingLogo: 'navbar' | 'footer' | null;
+  uploadingLogo: 'navbar' | 'footer' | 'favicon' | null;
   onFieldChange: (field: keyof BrandingForm, value: string) => void;
   onSyncLogosChange: (checked: boolean) => void;
   onUploadLogo: (slot: 'navbar' | 'footer', file: File) => Promise<void>;
+  onUploadFavicon: (file: File) => Promise<void>;
   onSave: () => Promise<void>;
   onReset: () => void;
   onRefresh: () => Promise<void>;
@@ -2161,6 +2184,21 @@ function BrandingSettingsCard({
     brandKeyword: form.brandKeyword.trim() || DEFAULT_BRANDING.brandKeyword,
     navbarLogoUrl: form.navbarLogoUrl.trim() || DEFAULT_BRANDING.navbarLogoUrl,
     footerLogoUrl: form.footerLogoUrl.trim() || DEFAULT_BRANDING.footerLogoUrl,
+    faviconIcoUrl: form.faviconIcoUrl.trim() || DEFAULT_BRANDING.faviconIcoUrl,
+    favicon16Url: form.favicon16Url.trim() || DEFAULT_BRANDING.favicon16Url,
+    favicon32Url: form.favicon32Url.trim() || DEFAULT_BRANDING.favicon32Url,
+    appleTouchIconUrl: form.appleTouchIconUrl.trim() || DEFAULT_BRANDING.appleTouchIconUrl,
+    favicon192Url: form.favicon192Url.trim() || DEFAULT_BRANDING.favicon192Url,
+    favicon512Url: form.favicon512Url.trim() || DEFAULT_BRANDING.favicon512Url,
+    mfiId: form.mfiId.trim() || DEFAULT_BRANDING.mfiId,
+    countryCode: form.countryCode.trim() || DEFAULT_BRANDING.countryCode,
+    mfiCode: form.mfiCode.trim() || DEFAULT_BRANDING.mfiCode,
+    institutionalTitle: form.institutionalTitle.trim(),
+    institutionalDescription: form.institutionalDescription.trim(),
+    mfiIdNote: form.mfiIdNote.trim(),
+    depositorProtectionTitle: form.depositorProtectionTitle.trim(),
+    depositorProtectionDescription: form.depositorProtectionDescription.trim(),
+    depositorProtectionUrl: form.depositorProtectionUrl.trim() || DEFAULT_BRANDING.depositorProtectionUrl,
     updatedAt: savedBranding.updatedAt,
   };
   const referencePreview = `${getBrandReferencePrefix(previewBranding)}-A1B2C3D4`;
@@ -2172,6 +2210,12 @@ function BrandingSettingsCard({
     const file = event.currentTarget.files?.[0];
     event.currentTarget.value = '';
     if (file) void onUploadLogo(slot, file);
+  };
+
+  const handleFaviconFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = '';
+    if (file) void onUploadFavicon(file);
   };
 
   const uploadButton = (slot: 'navbar' | 'footer', label: string) => (
@@ -2194,9 +2238,9 @@ function BrandingSettingsCard({
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#006446]">Site Branding</p>
-            <h2 className="mt-2 text-3xl font-serif font-bold text-slate-950">Logo and SKOK replacement</h2>
+            <h2 className="mt-2 text-3xl font-serif font-bold text-slate-950">Brand and institutional settings</h2>
             <p className="mt-2 max-w-3xl text-sm text-slate-500">
-              Save once to update the public navbar, footer logo, dashboard logo, browser title, translated SKOK text, and dashboard invoices.
+              Save once to update logos, generated favicons, site branding, institutional identification, and dashboard invoices.
             </p>
             <div className={`mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${
               remoteAvailable
@@ -2236,7 +2280,7 @@ function BrandingSettingsCard({
               className="inline-flex items-center justify-center gap-2 rounded-full bg-[#006446] px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#004d36] disabled:cursor-not-allowed disabled:opacity-70"
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Save branding
+              Save site settings
             </button>
           </div>
         </div>
@@ -2306,6 +2350,155 @@ function BrandingSettingsCard({
               {uploadButton('footer', 'Upload footer logo')}
             </div>
           )}
+
+          <div className="border-t border-[#006446]/10 pt-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Browser favicon and app icon</p>
+                <p className="mt-1 max-w-xl text-xs leading-relaxed text-slate-500">
+                  Upload one square source image. The generator creates ICO plus 16, 32, 180, 192, and 512 pixel assets for browsers, Apple devices, and the web app manifest.
+                </p>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-3">
+                <div className="grid h-16 w-16 place-items-center rounded-2xl border border-[#006446]/12 bg-[linear-gradient(135deg,#f8fafc,#eef7f3)] p-2 shadow-sm">
+                  <img
+                    src={previewBranding.favicon512Url}
+                    alt="Favicon preview"
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+                <label className={`inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border border-[#006446]/12 bg-white px-4 py-2 text-sm font-semibold text-[#006446] transition-colors hover:bg-[#006446]/[0.05] ${uploadingLogo ? 'pointer-events-none opacity-70' : ''}`}>
+                  {uploadingLogo === 'favicon' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  {uploadingLogo === 'favicon' ? 'Generating…' : 'Upload favicon source'}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    className="sr-only"
+                    disabled={Boolean(uploadingLogo)}
+                    onChange={handleFaviconFileChange}
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {['favicon.ico (16/32/48)', '16×16 PNG', '32×32 PNG', '180×180 Apple', '192×192 PWA', '512×512 PWA'].map((size) => (
+                <span key={size} className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[11px] font-medium text-emerald-700">
+                  {size}
+                </span>
+              ))}
+            </div>
+            <p className="mt-3 text-xs text-slate-500">For the sharpest result, use a transparent square PNG or SVG at least 512×512. Maximum source size: 10 MB.</p>
+          </div>
+
+          <div className="border-t border-[#006446]/10 pt-5">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Institutional identification</p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                These values appear in the public footer. They are stored with the branding settings in Supabase.
+              </p>
+            </div>
+
+            <div className="mt-4 grid gap-4 sm:grid-cols-3">
+              <label className="space-y-2">
+                <span className="text-sm font-medium text-slate-700">MFI ID</span>
+                <input
+                  value={form.mfiId}
+                  onChange={(event) => onFieldChange('mfiId', event.target.value)}
+                  placeholder="PL10026"
+                  className="w-full rounded-2xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
+                />
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-sm font-medium text-slate-700">Country code</span>
+                <input
+                  value={form.countryCode}
+                  onChange={(event) => onFieldChange('countryCode', event.target.value.toUpperCase())}
+                  placeholder="PL"
+                  maxLength={8}
+                  className="w-full rounded-2xl border border-[#006446]/14 bg-white px-4 py-3 text-sm uppercase text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
+                />
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-sm font-medium text-slate-700">MFI code</span>
+                <input
+                  value={form.mfiCode}
+                  onChange={(event) => onFieldChange('mfiCode', event.target.value)}
+                  placeholder="10026"
+                  className="w-full rounded-2xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
+                />
+              </label>
+            </div>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <label className="space-y-2">
+                <span className="text-sm font-medium text-slate-700">Section heading</span>
+                <input
+                  value={form.institutionalTitle}
+                  onChange={(event) => onFieldChange('institutionalTitle', event.target.value)}
+                  placeholder="Use the translated default"
+                  className="w-full rounded-2xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
+                />
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-sm font-medium text-slate-700">Depositor-protection heading</span>
+                <input
+                  value={form.depositorProtectionTitle}
+                  onChange={(event) => onFieldChange('depositorProtectionTitle', event.target.value)}
+                  placeholder="Use the translated default"
+                  className="w-full rounded-2xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
+                />
+              </label>
+            </div>
+
+            <label className="mt-4 block space-y-2">
+              <span className="text-sm font-medium text-slate-700">Institution description</span>
+              <textarea
+                value={form.institutionalDescription}
+                onChange={(event) => onFieldChange('institutionalDescription', event.target.value)}
+                placeholder="Use the translated default"
+                rows={3}
+                className="w-full resize-y rounded-2xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
+              />
+            </label>
+
+            <label className="mt-4 block space-y-2">
+              <span className="text-sm font-medium text-slate-700">MFI note</span>
+              <textarea
+                value={form.mfiIdNote}
+                onChange={(event) => onFieldChange('mfiIdNote', event.target.value)}
+                placeholder="Leave blank to generate a translated note from the identifiers"
+                rows={2}
+                className="w-full resize-y rounded-2xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
+              />
+            </label>
+
+            <label className="mt-4 block space-y-2">
+              <span className="text-sm font-medium text-slate-700">Depositor-protection description</span>
+              <textarea
+                value={form.depositorProtectionDescription}
+                onChange={(event) => onFieldChange('depositorProtectionDescription', event.target.value)}
+                placeholder="Use the translated default"
+                rows={2}
+                className="w-full resize-y rounded-2xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
+              />
+            </label>
+
+            <label className="mt-4 block space-y-2">
+              <span className="text-sm font-medium text-slate-700">Depositor-protection URL</span>
+              <input
+                type="url"
+                value={form.depositorProtectionUrl}
+                onChange={(event) => onFieldChange('depositorProtectionUrl', event.target.value)}
+                placeholder="https://www.gov.pl/web/finance/protection-of-depositors"
+                className="w-full rounded-2xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
+              />
+            </label>
+          </div>
         </div>
 
         <div className="space-y-4">
@@ -2342,6 +2535,12 @@ function BrandingSettingsCard({
               <div className="rounded-2xl bg-slate-50 px-4 py-3">
                 <p className="text-xs text-slate-500">Invoice prefix</p>
                 <p className="mt-1 font-mono font-semibold text-slate-900">{referencePreview}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <p className="text-xs text-slate-500">Institution identifiers</p>
+                <p className="mt-1 font-semibold text-slate-900">
+                  {previewBranding.mfiId} · {previewBranding.countryCode} · {previewBranding.mfiCode}
+                </p>
               </div>
             </div>
 
@@ -4123,6 +4322,7 @@ export default function CrmAdmin() {
     refreshBranding,
     saveBranding,
     uploadLogo,
+    uploadFavicon,
   } = useBranding();
   const [initialViewState] = useState<CrmAdminViewState>(() => readCrmAdminViewState());
   const restoredScrollRef = useRef(false);
@@ -4167,7 +4367,7 @@ export default function CrmAdmin() {
   const [brandingForm, setBrandingForm] = useState<BrandingForm>(() => toBrandingForm(branding));
   const [syncBrandLogos, setSyncBrandLogos] = useState(() => branding.navbarLogoUrl === branding.footerLogoUrl);
   const [savingBranding, setSavingBranding] = useState(false);
-  const [uploadingBrandLogo, setUploadingBrandLogo] = useState<'navbar' | 'footer' | null>(null);
+  const [uploadingBrandLogo, setUploadingBrandLogo] = useState<'navbar' | 'footer' | 'favicon' | null>(null);
   const [notice, setNotice] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
   const [copiedCredentialKey, setCopiedCredentialKey] = useState<string | null>(null);
   const [savingBalanceStatus, setSavingBalanceStatus] = useState(false);
@@ -4271,19 +4471,42 @@ export default function CrmAdmin() {
   async function handleBrandingSave() {
     setSavingBranding(true);
 
-    const payload: BrandingUpdate = {
-      brandName: brandingForm.brandName.trim() || DEFAULT_BRANDING.brandName,
-      brandKeyword: brandingForm.brandKeyword.trim() || DEFAULT_BRANDING.brandKeyword,
-      navbarLogoUrl: brandingForm.navbarLogoUrl.trim() || DEFAULT_BRANDING.navbarLogoUrl,
-      footerLogoUrl: (syncBrandLogos ? brandingForm.navbarLogoUrl : brandingForm.footerLogoUrl).trim() || DEFAULT_BRANDING.footerLogoUrl,
-    };
-
     try {
+      const depositorProtectionUrl = brandingForm.depositorProtectionUrl.trim()
+        || DEFAULT_BRANDING.depositorProtectionUrl;
+      const parsedDepositorProtectionUrl = new URL(depositorProtectionUrl);
+
+      if (!['http:', 'https:'].includes(parsedDepositorProtectionUrl.protocol)) {
+        throw new Error('Depositor-protection URL must start with http:// or https://.');
+      }
+
+      const payload: BrandingUpdate = {
+        brandName: brandingForm.brandName.trim() || DEFAULT_BRANDING.brandName,
+        brandKeyword: brandingForm.brandKeyword.trim() || DEFAULT_BRANDING.brandKeyword,
+        navbarLogoUrl: brandingForm.navbarLogoUrl.trim() || DEFAULT_BRANDING.navbarLogoUrl,
+        footerLogoUrl: (syncBrandLogos ? brandingForm.navbarLogoUrl : brandingForm.footerLogoUrl).trim() || DEFAULT_BRANDING.footerLogoUrl,
+        faviconIcoUrl: brandingForm.faviconIcoUrl.trim() || DEFAULT_BRANDING.faviconIcoUrl,
+        favicon16Url: brandingForm.favicon16Url.trim() || DEFAULT_BRANDING.favicon16Url,
+        favicon32Url: brandingForm.favicon32Url.trim() || DEFAULT_BRANDING.favicon32Url,
+        appleTouchIconUrl: brandingForm.appleTouchIconUrl.trim() || DEFAULT_BRANDING.appleTouchIconUrl,
+        favicon192Url: brandingForm.favicon192Url.trim() || DEFAULT_BRANDING.favicon192Url,
+        favicon512Url: brandingForm.favicon512Url.trim() || DEFAULT_BRANDING.favicon512Url,
+        mfiId: brandingForm.mfiId.trim() || DEFAULT_BRANDING.mfiId,
+        countryCode: brandingForm.countryCode.trim().toUpperCase() || DEFAULT_BRANDING.countryCode,
+        mfiCode: brandingForm.mfiCode.trim() || DEFAULT_BRANDING.mfiCode,
+        institutionalTitle: brandingForm.institutionalTitle.trim(),
+        institutionalDescription: brandingForm.institutionalDescription.trim(),
+        mfiIdNote: brandingForm.mfiIdNote.trim(),
+        depositorProtectionTitle: brandingForm.depositorProtectionTitle.trim(),
+        depositorProtectionDescription: brandingForm.depositorProtectionDescription.trim(),
+        depositorProtectionUrl,
+      };
+
       const result = await saveBranding(payload);
       setNotice({
         kind: result.persisted === 'remote' ? 'success' : 'error',
         message: result.persisted === 'remote'
-          ? 'Branding updated across the site.'
+          ? 'Branding, favicons, and institutional settings updated across the site.'
           : `Branding was saved only in this browser. Supabase rejected the update: ${result.error || 'unknown error'}`,
       });
     } catch (error) {
@@ -4315,11 +4538,31 @@ export default function CrmAdmin() {
           [slot === 'navbar' ? 'navbarLogoUrl' : 'footerLogoUrl']: publicUrl,
         };
       });
-      setNotice({ kind: 'success', message: 'Logo is ready. Press Save branding to publish it.' });
+      setNotice({ kind: 'success', message: 'Logo is ready. Press Save site settings to publish it.' });
     } catch (error) {
       setNotice({
         kind: 'error',
         message: error instanceof Error ? error.message : 'Could not upload logo.',
+      });
+    } finally {
+      setUploadingBrandLogo(null);
+    }
+  }
+
+  async function handleBrandingFaviconUpload(file: File) {
+    setUploadingBrandLogo('favicon');
+
+    try {
+      const generatedFavicons = await uploadFavicon(file);
+      setBrandingForm((current) => ({ ...current, ...generatedFavicons }));
+      setNotice({
+        kind: 'success',
+        message: 'All favicon sizes were generated. Press Save site settings to publish them.',
+      });
+    } catch (error) {
+      setNotice({
+        kind: 'error',
+        message: error instanceof Error ? error.message : 'Could not generate the favicon files.',
       });
     } finally {
       setUploadingBrandLogo(null);
@@ -5399,14 +5642,147 @@ export default function CrmAdmin() {
           body: JSON.stringify(requestBody),
         });
 
-      let response = await runCreateRequest(currentSession.access_token);
+      const runCompatibilityCreate = async (accessToken: string): Promise<CreateUserResponse> => {
+        if (!draft.email_confirm) {
+          throw new Error(
+            'Creating an unconfirmed login requires the current admin-user-management function. Ask the Supabase project owner to deploy it, or enable “Mark email as confirmed” and retry.'
+          );
+        }
+
+        const registrationResponse = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/public-register`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({
+              full_name: fullName,
+              email,
+              password: draft.password,
+            }),
+          }
+        );
+        const registrationText = await registrationResponse.text();
+        let registrationBody: { error?: string } = {};
+
+        if (registrationText) {
+          try {
+            registrationBody = JSON.parse(registrationText) as { error?: string };
+          } catch {
+            registrationBody = {};
+          }
+        }
+
+        if (!registrationResponse.ok) {
+          throw new Error(
+            registrationBody.error || registrationText || `Account creation failed with status ${registrationResponse.status}.`
+          );
+        }
+
+        let triggeredProfile: ProfileRecord | null = null;
+        let profileLookupError = '';
+
+        for (let attempt = 0; attempt < 8; attempt += 1) {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select(PROFILE_RECORD_SELECT)
+            .eq('email', email)
+            .maybeSingle();
+
+          if (data) {
+            triggeredProfile = data as ProfileRecord;
+            break;
+          }
+
+          if (error) profileLookupError = error.message;
+          await waitForProfileTrigger();
+        }
+
+        if (!triggeredProfile) {
+          throw new Error(
+            `The login was created, but its CRM profile was not generated.${profileLookupError ? ` ${profileLookupError}` : ''}`
+          );
+        }
+
+        const profilePayload = {
+          full_name: fullName,
+          email,
+          account_iban: draft.account_iban.trim().toUpperCase(),
+          kyc_status: draft.kyc_status,
+          crm_role: draft.crm_role,
+          is_admin: draft.crm_role === 'admin',
+          assigned_manager_id:
+            draft.crm_role === 'customer' || draft.crm_role === 'agent'
+              ? draft.assigned_manager_id || null
+              : null,
+          assigned_agent_id: draft.crm_role === 'customer' ? draft.assigned_agent_id || null : null,
+          plain_password: draft.password,
+          updated_at: new Date().toISOString(),
+        };
+        const { data: configuredProfile, error: configureError } = await supabase
+          .from('profiles')
+          .update(profilePayload)
+          .eq('id', triggeredProfile.id)
+          .select(PROFILE_RECORD_SELECT)
+          .single();
+
+        if (configureError || !configuredProfile) {
+          let rollbackWarning = '';
+
+          try {
+            const rollbackResponse = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-user-management`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+                  Authorization: `Bearer ${accessToken}`,
+                },
+                body: JSON.stringify({
+                  action: 'delete',
+                  user_id: triggeredProfile.id,
+                  confirm_email: email,
+                }),
+              }
+            );
+
+            if (!rollbackResponse.ok) {
+              const rollbackText = await rollbackResponse.text();
+              rollbackWarning = ` Automatic rollback failed${rollbackText ? `: ${rollbackText}` : '.'}`;
+            }
+          } catch (rollbackError) {
+            rollbackWarning = ` Automatic rollback failed: ${rollbackError instanceof Error ? rollbackError.message : 'unknown error'}`;
+          }
+
+          throw new Error(
+            `The login was created, but CRM profile setup failed: ${configureError?.message || 'No configured profile was returned'}.${rollbackWarning}`
+          );
+        }
+
+        return {
+          profile: configuredProfile as ProfileRecord,
+          user: {
+            id: triggeredProfile.id,
+            email,
+            email_confirmed: true,
+          },
+        };
+      };
+
+      let activeAccessToken = currentSession.access_token;
+      let response = await runCreateRequest(activeAccessToken);
 
       if (response.status === 401) {
         const { data: retriedSession, error: retryError } = await supabase.auth.refreshSession();
         if (retryError || !retriedSession.session?.access_token) {
           throw new Error(retryError?.message || 'Your administrator session expired. Please sign in again.');
         }
-        response = await runCreateRequest(retriedSession.session.access_token);
+        activeAccessToken = retriedSession.session.access_token;
+        response = await runCreateRequest(activeAccessToken);
       }
 
       const rawResponse = await response.text();
@@ -5420,12 +5796,17 @@ export default function CrmAdmin() {
       }
 
       if (!response.ok) {
-        const rollbackWarning = responseBody.rollback_warning
-          ? ` Auth rollback warning: ${responseBody.rollback_warning}`
-          : '';
-        throw new Error(
-          `${responseBody.error || rawResponse || `User creation failed with status ${response.status}`}${rollbackWarning}`
-        );
+        const primaryError = responseBody.error || rawResponse || `User creation failed with status ${response.status}`;
+        const staleCreateFunction = primaryError.trim().toLowerCase() === 'user_id is required';
+
+        if (staleCreateFunction) {
+          responseBody = await runCompatibilityCreate(activeAccessToken);
+        } else {
+          const rollbackWarning = responseBody.rollback_warning
+            ? ` Auth rollback warning: ${responseBody.rollback_warning}`
+            : '';
+          throw new Error(`${primaryError}${rollbackWarning}`);
+        }
       }
 
       if (!responseBody.profile?.id) {
@@ -6373,6 +6754,7 @@ export default function CrmAdmin() {
       onFieldChange={handleBrandingFieldChange}
       onSyncLogosChange={handleSyncBrandLogosChange}
       onUploadLogo={handleBrandingLogoUpload}
+      onUploadFavicon={handleBrandingFaviconUpload}
       onSave={handleBrandingSave}
       onReset={handleBrandingReset}
       onRefresh={refreshBranding}

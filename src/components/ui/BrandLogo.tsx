@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { DEFAULT_BRANDING } from '../../contexts/BrandingContext';
 
 type BrandLogoProps = {
@@ -22,33 +22,19 @@ function normalizeLogoSrc(value: string) {
 }
 
 export default function BrandLogo({ src, alt, className }: BrandLogoProps) {
-  const fallbackSrc = useMemo(() => getPublicAssetUrl(DEFAULT_BRANDING.navbarLogoUrl), []);
   const preferredSrc = useMemo(() => normalizeLogoSrc(src), [src]);
-  const [currentSrc, setCurrentSrc] = useState(preferredSrc);
-  const [failed, setFailed] = useState(false);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
 
-  useEffect(() => {
-    setCurrentSrc(preferredSrc);
-    setFailed(false);
-  }, [preferredSrc]);
-
-  if (failed) {
+  if (failedSrc === preferredSrc) {
     return <span className={className}>{alt}</span>;
   }
 
   return (
     <img
-      src={currentSrc}
+      src={preferredSrc}
       alt={alt}
       className={className}
-      onError={() => {
-        if (currentSrc !== fallbackSrc) {
-          setCurrentSrc(fallbackSrc);
-          return;
-        }
-
-        setFailed(true);
-      }}
+      onError={() => setFailedSrc(preferredSrc)}
     />
   );
 }

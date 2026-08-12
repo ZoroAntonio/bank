@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useBranding } from '../contexts/BrandingContext';
 
 const SITE_URL = 'https://www.skokwybrzeze.com';
 const DEFAULT_TITLE = 'SKOK Bank | Skok Wybrzeże Bank';
@@ -61,15 +62,23 @@ function setMetaContent(selector: string, content: string) {
   document.head.querySelector<HTMLMetaElement>(selector)?.setAttribute('content', content);
 }
 
+function toAbsoluteAssetUrl(value: string) {
+  if (/^https?:\/\//i.test(value)) return value;
+  if (/^(data:|blob:)/i.test(value)) return value;
+  return new URL(value.replace(/^\//, ''), `${SITE_URL}/`).toString();
+}
+
 export default function SeoMetadata() {
   const { pathname } = useLocation();
+  const { branding, applyBranding } = useBranding();
 
   useEffect(() => {
     const metadata = PUBLIC_METADATA[pathname];
     const isPublicPage = Boolean(metadata);
-    const title = metadata?.title || 'Online Banking | SKOK Bank';
-    const description = metadata?.description || 'Secure SKOK Bank account access.';
+    const title = applyBranding(metadata?.title || 'Online Banking | SKOK Bank');
+    const description = applyBranding(metadata?.description || 'Secure SKOK Bank account access.');
     const canonicalUrl = `${SITE_URL}${pathname === '/' ? '/' : pathname}`;
+    const logoUrl = toAbsoluteAssetUrl(branding.navbarLogoUrl);
 
     document.title = title;
     document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.setAttribute('href', canonicalUrl);
@@ -80,9 +89,25 @@ export default function SeoMetadata() {
     setMetaContent('meta[property="og:url"]', canonicalUrl);
     setMetaContent('meta[property="og:title"]', title);
     setMetaContent('meta[property="og:description"]', description);
+    setMetaContent('meta[property="og:site_name"]', branding.brandName);
+    setMetaContent('meta[property="og:image"]', logoUrl);
+    setMetaContent('meta[property="og:image:alt"]', `${branding.brandName} logo`);
     setMetaContent('meta[name="twitter:title"]', title);
     setMetaContent('meta[name="twitter:description"]', description);
-  }, [pathname]);
+    setMetaContent('meta[name="twitter:image"]', logoUrl);
+    setMetaContent('meta[name="twitter:image:alt"]', `${branding.brandName} logo`);
+
+    const structuredData = document.head.querySelector<HTMLScriptElement>('script[type="application/ld+json"]');
+    if (structuredData) {
+      structuredData.textContent = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'BankOrCreditUnion',
+        name: branding.brandName,
+        url: `${SITE_URL}/`,
+        logo: logoUrl,
+      });
+    }
+  }, [applyBranding, branding.brandName, branding.navbarLogoUrl, pathname]);
 
   return null;
 }

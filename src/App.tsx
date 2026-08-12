@@ -81,8 +81,8 @@ function AppRoutes() {
 export default function App() {
   return (
     <Router>
-      <SeoMetadata />
       <BrandingProvider>
+        <SeoMetadata />
         <LanguageProvider>
           <CookieConsentProvider>
             <AuthProvider>

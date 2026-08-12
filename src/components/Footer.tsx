@@ -10,7 +10,16 @@ export default function Footer() {
   const { t } = useLanguage();
   const { branding } = useBranding();
   const { openPreferences } = useCookieConsent();
-  const depositorProtectionUrl = 'https://www.gov.pl/web/finance/protection-of-depositors';
+  const usesDefaultInstitutionalIds = branding.mfiId === 'PL10026'
+    && branding.countryCode === 'PL'
+    && branding.mfiCode === '10026';
+  const institutionalTitle = branding.institutionalTitle || t('institutionalIdentification');
+  const institutionalDescription = branding.institutionalDescription || t('institutionalIdentificationDescription');
+  const mfiIdNote = branding.mfiIdNote || (usesDefaultInstitutionalIds
+    ? t('mfiIdNote')
+    : `${t('mfiId')}: ${branding.mfiId}. ${t('countryCode')}: ${branding.countryCode}. ${t('mfiCode')}: ${branding.mfiCode}.`);
+  const depositorProtectionTitle = branding.depositorProtectionTitle || t('depositorProtectionTitle');
+  const depositorProtectionDescription = branding.depositorProtectionDescription || t('depositorProtectionDescription');
 
   const productLinks = [
     { label: t('checkingAccounts'), href: '/business-banking' },
@@ -116,29 +125,29 @@ export default function Footer() {
             <div className="grid gap-8 lg:grid-cols-[1fr,auto] lg:items-center">
               <div>
                 <h5 className="mb-3 text-sm font-semibold uppercase tracking-[0.14em] text-[#006446]">
-                  {t('institutionalIdentification')}
+                  {institutionalTitle}
                 </h5>
 
                 <p className="max-w-3xl text-sm leading-relaxed text-surface-700">
-                  {t('institutionalIdentificationDescription')}
+                  {institutionalDescription}
                 </p>
 
                 <p className="mt-6 max-w-3xl text-[11px] leading-relaxed text-surface-500">
-                  {t('mfiIdNote')}
+                  {mfiIdNote}
                 </p>
 
                 <a
-                  href={depositorProtectionUrl}
+                  href={branding.depositorProtectionUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="group mt-5 inline-flex max-w-xl items-start gap-3 rounded-2xl border border-[#006446]/12 bg-white/80 px-4 py-3 text-left shadow-sm transition-all duration-200 hover:border-[#006446]/25 hover:bg-white hover:shadow-[0_14px_32px_rgba(0,100,70,0.08)]"
                 >
                   <div className="min-w-0">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#006446]">
-                      {t('depositorProtectionTitle')}
+                      {depositorProtectionTitle}
                     </p>
                     <p className="mt-1 text-sm leading-relaxed text-surface-700">
-                      {t('depositorProtectionDescription')}
+                      {depositorProtectionDescription}
                     </p>
                   </div>
                   <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-[#006446]/60 transition-all duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-[#006446]" />
@@ -148,15 +157,15 @@ export default function Footer() {
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="min-w-[130px] rounded-2xl border border-[#006446]/12 bg-white px-5 py-4">
                   <p className="mb-1 text-[11px] uppercase tracking-[0.18em] text-surface-500">{t('mfiId')}</p>
-                  <p className="text-lg font-semibold text-[#006446]">PL10026</p>
+                  <p className="text-lg font-semibold text-[#006446]">{branding.mfiId}</p>
                 </div>
                 <div className="min-w-[130px] rounded-2xl border border-[#006446]/12 bg-white px-5 py-4">
                   <p className="mb-1 text-[11px] uppercase tracking-[0.18em] text-surface-500">{t('countryCode')}</p>
-                  <p className="text-lg font-semibold text-[#006446]">PL</p>
+                  <p className="text-lg font-semibold text-[#006446]">{branding.countryCode}</p>
                 </div>
                 <div className="min-w-[130px] rounded-2xl border border-[#006446]/12 bg-white px-5 py-4">
                   <p className="mb-1 text-[11px] uppercase tracking-[0.18em] text-surface-500">{t('mfiCode')}</p>
-                  <p className="text-lg font-semibold text-[#006446]">10026</p>
+                  <p className="text-lg font-semibold text-[#006446]">{branding.mfiCode}</p>
                 </div>
               </div>
             </div>
