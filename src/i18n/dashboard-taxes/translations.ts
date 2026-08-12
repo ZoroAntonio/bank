@@ -1,6 +1,10 @@
 import { registerTranslations } from '../../contexts/LanguageContext';
+import { lt } from './lt';
+import { pl } from './pl';
 
 registerTranslations({
+  lt,
+  pl,
   en: {
     'dashboardTaxes.title': 'Taxes',
     'dashboardTaxes.subtitle': 'Track and manage your tax obligations',

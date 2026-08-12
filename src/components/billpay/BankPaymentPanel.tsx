@@ -1,3 +1,5 @@
+import { useLanguage } from '../../contexts/LanguageContext';
+
 interface BankPaymentPanelProps {
   bankName: string;
   bankAccountNumber: string;
@@ -19,6 +21,7 @@ export default function BankPaymentPanel({
   onChangeBankIban,
   onChangeBankSwiftCode,
 }: BankPaymentPanelProps) {
+  const { t } = useLanguage();
   const inputClassName =
     'w-full rounded-xl border border-[#006446]/14 bg-[#006446]/[0.03] px-4 py-2.5 text-sm text-slate-900 transition-colors placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#006446]/20';
 
@@ -26,7 +29,9 @@ export default function BankPaymentPanel({
     <div className="space-y-4">
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-800">Bank Name</label>
+          <label className="mb-1.5 block text-sm font-medium text-slate-800">
+            {t('dashboardBillPay.bank.bankName')}
+          </label>
           <input
             type="text"
             value={bankName}
@@ -36,7 +41,9 @@ export default function BankPaymentPanel({
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-800">Account Number</label>
+          <label className="mb-1.5 block text-sm font-medium text-slate-800">
+            {t('dashboardBillPay.bank.accountNumber')}
+          </label>
           <input
             type="text"
             value={bankAccountNumber}
@@ -48,12 +55,14 @@ export default function BankPaymentPanel({
       </div>
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-800">IBAN</label>
+          <label className="mb-1.5 block text-sm font-medium text-slate-800">
+            {t('dashboardBillPay.bank.iban')}
+          </label>
           <input
             type="text"
             value={bankIban}
             onChange={(e) => onChangeBankIban(e.target.value.toUpperCase())}
-            placeholder="e.g., CH93 0076 2011 6238 5295 7"
+            placeholder={t('dashboardBillPay.bank.ibanPlaceholder')}
             maxLength={42}
             autoCapitalize="characters"
             spellCheck={false}
@@ -61,7 +70,9 @@ export default function BankPaymentPanel({
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-800">SWIFT / BIC Code</label>
+          <label className="mb-1.5 block text-sm font-medium text-slate-800">
+            {t('dashboardBillPay.bank.swiftBic')}
+          </label>
           <input
             type="text"
             value={bankSwiftCode}

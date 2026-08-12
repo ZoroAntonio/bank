@@ -1,6 +1,8 @@
 import { registerTranslations } from '../../contexts/LanguageContext';
+import { lt } from './lt';
 
 registerTranslations({
+  lt,
   en: {
     'cookies.banner.kicker': 'Privacy Center',
     'cookies.banner.title': 'Your privacy and banking data choices',

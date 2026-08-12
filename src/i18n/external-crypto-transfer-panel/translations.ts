@@ -1,6 +1,10 @@
 import { registerTranslations } from '../../contexts/LanguageContext';
+import { lt } from './lt';
+import { pl } from './pl';
 
 registerTranslations({
+  lt,
+  pl,
   en: {
     'externalCryptoTransfer.title': 'External Crypto Transfer',
 
@@ -20,6 +24,8 @@ registerTranslations({
     'externalCryptoTransfer.placeholders.amount': '0.00',
     'externalCryptoTransfer.placeholders.sendNote': 'Payment reference or memo',
     'externalCryptoTransfer.placeholders.receiveNote': 'Transaction ID, reference, or memo',
+    'externalCryptoTransfer.placeholders.solanaAddress': 'Solana address...',
+    'externalCryptoTransfer.placeholders.walletAddress': 'Wallet address',
 
     'externalCryptoTransfer.send.yourWallet': 'Your',
     'externalCryptoTransfer.send.wallet': 'Wallet',
@@ -47,6 +53,8 @@ registerTranslations({
     'externalCryptoTransfer.errors.invalidAddress': 'Enter a valid wallet address',
     'externalCryptoTransfer.errors.insufficient': 'Insufficient',
     'externalCryptoTransfer.errors.balance': 'balance',
+    'externalCryptoTransfer.restrictedBalances': 'Pending and frozen balances remain visible for reference but cannot be used for send or receive requests.',
+    'externalCryptoTransfer.noAvailableBalances': 'No available crypto balances can be used right now.',
   },
 
   fr: {

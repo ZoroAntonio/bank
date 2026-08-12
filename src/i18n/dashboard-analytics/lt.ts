@@ -1,0 +1,15 @@
+export const lt = {
+  'dashboardAnalytics.title': 'Analizė',
+  'dashboardAnalytics.subtitle': 'Jūsų išsami finansinė apžvalga',
+  'dashboardAnalytics.periods.all': 'Visą laiką',
+  'dashboardAnalytics.periods.90days': '90 dienų',
+  'dashboardAnalytics.periods.30days': '30 dienų',
+  'dashboardAnalytics.transactionSummary.title': 'Sandorio suvestinė',
+  'dashboardAnalytics.transactionSummary.totalTransactions': 'Iš viso sandorių',
+  'dashboardAnalytics.transactionSummary.credits': 'Įplaukos',
+  'dashboardAnalytics.transactionSummary.debits': 'Išlaidos',
+  'dashboardAnalytics.transactionSummary.avgExpense': 'Vid. Išlaidos',
+  'dashboardAnalytics.transactionSummary.completed': 'Užbaigtos',
+  'dashboardAnalytics.transactionSummary.pending': 'Laukiama',
+  'dashboardAnalytics.transactionSummary.uniquePois': 'Unikalios LV',
+};

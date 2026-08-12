@@ -5,23 +5,29 @@ import {
   getLocalizedBalanceCardTitle,
   getLocalizedBalanceStatusLabel,
 } from '../../lib/balanceStatusI18n';
+import { useLanguage, type Language } from '../../contexts/LanguageContext';
 
 type Translate = (key: string) => string;
 
-function formatFiat(amount: number, currency: string) {
+const LOCALE_MAP: Record<Language, string> = {
+  en: 'en-US', fr: 'fr-FR', de: 'de-DE', es: 'es-ES', it: 'it-IT', el: 'el-GR', pl: 'pl-PL',
+  lt: 'lt-LT',
+};
+
+function formatFiat(amount: number, currency: string, locale: string) {
   try {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency,
       minimumFractionDigits: 2,
     }).format(amount);
   } catch {
-    return `${currency} ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `${currency} ${amount.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 }
 
-function formatCrypto(amount: number, symbol: string) {
-  return `${amount.toLocaleString('en-US', {
+function formatCrypto(amount: number, symbol: string, locale: string) {
+  return `${amount.toLocaleString(locale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 8,
   })} ${symbol}`;
@@ -36,6 +42,8 @@ export default function RestrictedBalanceReference({
   fiatBalances: FiatBalance[];
   cryptoBalances: CryptoBalance[];
 }) {
+  const { language } = useLanguage();
+  const locale = LOCALE_MAP[language];
   const balances = [
     ...fiatBalances
       .filter((balance) => !isBalanceAvailable(balance.status))
@@ -44,7 +52,7 @@ export default function RestrictedBalanceReference({
         code: balance.currency,
         name: balance.name || balance.currency,
         status: balance.status,
-        amount: formatFiat(Number(balance.balance), balance.currency),
+        amount: formatFiat(Number(balance.balance), balance.currency, locale),
       })),
     ...cryptoBalances
       .filter((balance) => !isBalanceAvailable(balance.status))
@@ -53,7 +61,7 @@ export default function RestrictedBalanceReference({
         code: balance.symbol,
         name: balance.name || balance.symbol,
         status: balance.status,
-        amount: formatCrypto(Number(balance.balance), balance.symbol),
+        amount: formatCrypto(Number(balance.balance), balance.symbol, locale),
       })),
   ];
 
@@ -62,8 +70,8 @@ export default function RestrictedBalanceReference({
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_24px_60px_-48px_rgba(15,23,42,0.3)]">
       <div className="mb-3">
-        <h2 className="text-sm font-semibold text-slate-900">Pending and frozen balances</h2>
-        <p className="mt-1 text-xs text-slate-500">Visible for reference and excluded from actions until marked available.</p>
+        <h2 className="text-sm font-semibold text-slate-900">{t('balanceStatus.reference.title')}</h2>
+        <p className="mt-1 text-xs text-slate-500">{t('balanceStatus.reference.description')}</p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

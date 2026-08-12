@@ -12,4 +12,10 @@ registerTranslations({
     'loadingScreen.statusLabel': 'Ładowanie',
     'loadingScreen.verifyingAccess': 'Weryfikujemy dostęp i usługi na rachunku',
   },
+
+  lt: {
+    'loadingScreen.preparingSession': 'Ruošiama saugi bankininkystės sesija',
+    'loadingScreen.statusLabel': 'Įkeliama',
+    'loadingScreen.verifyingAccess': 'Tikrinama prieiga ir sąskaitos paslaugos',
+  },
 });

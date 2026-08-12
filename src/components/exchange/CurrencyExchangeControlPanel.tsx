@@ -17,7 +17,7 @@ import {
 } from '../../hooks/useCurrencyExchange';
 import { useFiatBalances } from '../../hooks/useFiatBalances';
 import { useCryptoBalances } from '../../hooks/useCryptoBalances';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { useLanguage, type Language } from '../../contexts/LanguageContext';
 import RestrictedBalanceReference from '../dashboard/RestrictedBalanceReference';
 import { isBalanceAvailable } from '../../lib/balanceStatus';
 import {
@@ -62,23 +62,32 @@ function getCrossAssetRate(
   return cryptoUsdPrice > 0 && usdToFiatRate > 0 ? cryptoUsdPrice * usdToFiatRate : 0;
 }
 
-function formatFiat(amount: number, currency: string = 'USD') {
+const LOCALE_MAP: Record<Language, string> = {
+  en: 'en-US', fr: 'fr-FR', de: 'de-DE', es: 'es-ES', it: 'it-IT', el: 'el-GR', pl: 'pl-PL',
+  lt: 'lt-LT',
+};
+
+function interpolate(template: string, vars: Record<string, string | number>) {
+  return template.replace(/\{(\w+)\}/g, (_, key) => String(vars[key] ?? `{${key}}`));
+}
+
+function formatFiatValue(amount: number, currency: string = 'USD', locale = 'en-US') {
   try {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency,
       minimumFractionDigits: 2,
     }).format(amount);
   } catch {
-    return `${currency} ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `${currency} ${amount.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 }
 
-function getCurrencySymbol(currency: string) {
+function getCurrencySymbolValue(currency: string, locale: string) {
   if (!currency) return '';
 
   try {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency,
       currencyDisplay: 'narrowSymbol',
@@ -88,8 +97,8 @@ function getCurrencySymbol(currency: string) {
   }
 }
 
-function formatUsd(amount: number) {
-  return new Intl.NumberFormat('en-US', {
+function formatUsdValue(amount: number, locale: string) {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 2,
@@ -97,10 +106,12 @@ function formatUsd(amount: number) {
   }).format(amount);
 }
 
-function formatCryptoAmount(amount: number) {
-  if (amount >= 1) return amount.toFixed(4);
-  if (amount >= 0.001) return amount.toFixed(6);
-  return amount.toFixed(8);
+function formatCryptoAmountValue(amount: number, locale: string) {
+  const digits = amount >= 1 ? 4 : amount >= 0.001 ? 6 : 8;
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(amount);
 }
 
 export default function CurrencyExchangeControlPanel({
@@ -108,7 +119,16 @@ export default function CurrencyExchangeControlPanel({
   variant = 'dashboard',
   onSuccess,
 }: CurrencyExchangeControlPanelProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const locale = LOCALE_MAP[language];
+  const formatFiat = (amount: number, currency = 'USD') => formatFiatValue(amount, currency, locale);
+  const formatUsd = (amount: number) => formatUsdValue(amount, locale);
+  const formatCryptoAmount = (amount: number) => formatCryptoAmountValue(amount, locale);
+  const getCurrencySymbol = (currency: string) => getCurrencySymbolValue(currency, locale);
+  const formatNumber = (amount: number, digits: number) => new Intl.NumberFormat(locale, {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(amount);
   const { loading, executeExchange, executeCryptoSwap, executeCrossAssetExchange } = useCurrencyExchange(userId);
   const { fiatBalances, loading: fiatLoading, refetch: refetchFiat } = useFiatBalances(userId);
   const { cryptoBalances, loading: cryptoLoading, refetch: refetchCrypto } = useCryptoBalances(userId);
@@ -172,7 +192,11 @@ export default function CurrencyExchangeControlPanel({
   const cryptoSymbols = exchangeableCryptoBalances.map((balance) => balance.symbol);
   const fiatOptions = exchangeableFiatBalances.map((balance) => {
     const currency = balance.currency;
-    const currencyName = balance.name.trim() || currency;
+    const currencyKey = `dashboardCurrencyExchange.currencies.${currency.toLowerCase()}`;
+    const translatedCurrencyName = t(currencyKey);
+    const currencyName = translatedCurrencyName === currencyKey
+      ? balance.name.trim() || currency
+      : translatedCurrencyName;
     return {
       value: currency,
       label: `${currencyName} (${currency}) - ${formatFiat(balance.balance, currency)}`,
@@ -298,7 +322,7 @@ export default function CurrencyExchangeControlPanel({
     });
 
     if (result?.error) {
-      setFiatResult({ success: false, message: result.error });
+      setFiatResult({ success: false, message: t('dashboardCurrencyExchange.messages.genericError') });
     } else {
       setFiatResult({
         success: true,
@@ -336,7 +360,7 @@ export default function CurrencyExchangeControlPanel({
     });
 
     if (result?.error) {
-      setCryptoResult({ success: false, message: result.error });
+      setCryptoResult({ success: false, message: t('dashboardCurrencyExchange.messages.genericError') });
     } else {
       setCryptoResult({
         success: true,
@@ -364,7 +388,7 @@ export default function CurrencyExchangeControlPanel({
 
     const latestMarket = await refetchRates();
     if (!latestMarket) {
-      setCrossResult({ success: false, message: 'Unable to load a current market quote. Please try again.' });
+      setCrossResult({ success: false, message: t('dashboardCurrencyExchange.messages.quoteError') });
       setCrossSubmitting(false);
       return;
     }
@@ -377,7 +401,7 @@ export default function CurrencyExchangeControlPanel({
       latestMarket.crypto || {},
     );
     if (liveRate <= 0) {
-      setCrossResult({ success: false, message: 'A live rate is not available for this pair.' });
+      setCrossResult({ success: false, message: t('dashboardCurrencyExchange.messages.rateUnavailable') });
       setCrossSubmitting(false);
       return;
     }
@@ -396,7 +420,7 @@ export default function CurrencyExchangeControlPanel({
     });
 
     if (result.error) {
-      setCrossResult({ success: false, message: result.error });
+      setCrossResult({ success: false, message: t('dashboardCurrencyExchange.messages.genericError') });
     } else {
       const sentLabel = crossSourceIsFiat
         ? formatFiat(crossNum, crossFromAsset)
@@ -418,7 +442,7 @@ export default function CurrencyExchangeControlPanel({
   if (isCrmVariant && !userId) {
     return (
       <div className="border border-[#006446]/14 bg-white px-6 py-12 text-center shadow-[0_24px_60px_-48px_rgba(0,100,70,0.45)]">
-        <p className="text-sm text-slate-500">Select a customer first to control fiat and crypto exchanges.</p>
+        <p className="text-sm text-slate-500">{t('dashboardCurrencyExchange.messages.selectCustomer')}</p>
       </div>
     );
   }
@@ -468,18 +492,16 @@ export default function CurrencyExchangeControlPanel({
       {ratesError && (
         <div className="flex items-center gap-2 rounded-2xl border border-[#006446]/14 bg-[#006446]/[0.04] px-4 py-3 text-sm text-[#006446]">
           <AlertCircle className="h-4 w-4 shrink-0" />
-          {ratesError}
+          {t('dashboardCurrencyExchange.messages.ratesError')}
         </div>
       )}
 
       {(unsupportedConfiguredFiat.length > 0 || unsupportedConfiguredCrypto.length > 0) && (
         <div className="flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>
-            Live quotes are unavailable for{' '}
-            {[...unsupportedConfiguredFiat, ...unsupportedConfiguredCrypto].join(', ')}.
-            Those balances remain visible in the account but are excluded from exchange controls.
-          </span>
+          <span>{interpolate(t('dashboardCurrencyExchange.messages.quotesUnavailable'), {
+            assets: [...unsupportedConfiguredFiat, ...unsupportedConfiguredCrypto].join(', '),
+          })}</span>
         </div>
       )}
 
@@ -529,7 +551,8 @@ export default function CurrencyExchangeControlPanel({
                   placeholder={t('dashboardCurrencyExchange.placeholders.selectCurrency')}
                   className="w-full"
                   searchable={fiatOptions.length > 6}
-                  searchPlaceholder="Search currencies..."
+                  searchPlaceholder={t('dashboardCurrencyExchange.placeholders.searchCurrencies')}
+                  emptyMessage={t('dashboardCurrencyExchange.placeholders.noOptions')}
                 />
               </div>
 
@@ -577,7 +600,8 @@ export default function CurrencyExchangeControlPanel({
                   placeholder={t('dashboardCurrencyExchange.placeholders.selectCurrency')}
                   className="w-full"
                   searchable={fiatOptions.length > 6}
-                  searchPlaceholder="Search currencies..."
+                  searchPlaceholder={t('dashboardCurrencyExchange.placeholders.searchCurrencies')}
+                  emptyMessage={t('dashboardCurrencyExchange.placeholders.noOptions')}
                 />
               </div>
 
@@ -589,7 +613,7 @@ export default function CurrencyExchangeControlPanel({
                   </div>
                   <div className="flex justify-between">
                     <span className="text-[#006446]/70">{t('dashboardCurrencyExchange.summary.rate')}</span>
-                    <span className="font-medium text-slate-900">1 {fromCurrency} = {fiatRate.toFixed(4)} {toCurrency}</span>
+                    <span className="font-medium text-slate-900">1 {fromCurrency} = {formatNumber(fiatRate, 4)} {toCurrency}</span>
                   </div>
                   <div className="flex justify-between border-t border-[#006446]/10 pt-1.5">
                     <span className="font-medium text-slate-800">{t('dashboardCurrencyExchange.summary.youReceive')}</span>
@@ -622,7 +646,7 @@ export default function CurrencyExchangeControlPanel({
                   {liveFiatPairs.map(({ from, to, rate }) => (
                     <div key={`${from}-${to}`} className="flex items-center justify-between rounded-xl border border-[#006446]/10 bg-[#006446]/[0.04] px-3 py-2">
                       <span className="text-xs font-medium text-[#006446]">{from}/{to}</span>
-                      <span className="text-xs font-mono text-slate-900">{rate.toFixed(4)}</span>
+                      <span className="text-xs font-mono text-slate-900">{formatNumber(rate, 4)}</span>
                     </div>
                   ))}
                 </div>
@@ -674,7 +698,8 @@ export default function CurrencyExchangeControlPanel({
                   placeholder={t('dashboardCurrencyExchange.placeholders.selectToken')}
                   className="w-full"
                   searchable={cryptoOptions.length > 6}
-                  searchPlaceholder="Search tokens..."
+                  searchPlaceholder={t('dashboardCurrencyExchange.placeholders.searchTokens')}
+                  emptyMessage={t('dashboardCurrencyExchange.placeholders.noOptions')}
                 />
               </div>
 
@@ -735,7 +760,8 @@ export default function CurrencyExchangeControlPanel({
                   placeholder={t('dashboardCurrencyExchange.placeholders.selectToken')}
                   className="w-full"
                   searchable={cryptoOptions.length > 6}
-                  searchPlaceholder="Search tokens..."
+                  searchPlaceholder={t('dashboardCurrencyExchange.placeholders.searchTokens')}
+                  emptyMessage={t('dashboardCurrencyExchange.placeholders.noOptions')}
                 />
               </div>
 
@@ -778,7 +804,7 @@ export default function CurrencyExchangeControlPanel({
 
               {exchangeableCryptoBalances.length < 2 ? (
                 <p className="text-xs text-slate-400">
-                  You need at least two available crypto balances to swap assets.
+                  {t('dashboardCurrencyExchange.messages.needTwoCrypto')}
                 </p>
               ) : null}
             </form>
@@ -807,7 +833,7 @@ export default function CurrencyExchangeControlPanel({
                           <span className="text-xs font-mono text-slate-900">{formatUsd(price.usd)}</span>
                           <span className={`flex min-w-[52px] items-center justify-end gap-0.5 text-[10px] font-medium ${isUp ? 'text-[#006446]' : 'text-[#006446]/70'}`}>
                             {isUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                            {Math.abs(price.usd_24h_change).toFixed(1)}%
+                            {formatNumber(Math.abs(price.usd_24h_change), 1)}%
                           </span>
                         </div>
                       </div>
@@ -886,7 +912,10 @@ export default function CurrencyExchangeControlPanel({
                   ? t('dashboardCurrencyExchange.placeholders.selectCurrency')
                   : t('dashboardCurrencyExchange.placeholders.selectToken')}
                 searchable={(crossSourceIsFiat ? fiatOptions : cryptoOptions).length > 6}
-                searchPlaceholder={crossSourceIsFiat ? 'Search currencies...' : 'Search tokens...'}
+                searchPlaceholder={crossSourceIsFiat
+                  ? t('dashboardCurrencyExchange.placeholders.searchCurrencies')
+                  : t('dashboardCurrencyExchange.placeholders.searchTokens')}
+                emptyMessage={t('dashboardCurrencyExchange.placeholders.noOptions')}
               />
             </div>
 
@@ -958,7 +987,10 @@ export default function CurrencyExchangeControlPanel({
                   ? t('dashboardCurrencyExchange.placeholders.selectToken')
                   : t('dashboardCurrencyExchange.placeholders.selectCurrency')}
                 searchable={(crossSourceIsFiat ? cryptoOptions : fiatOptions).length > 6}
-                searchPlaceholder={crossSourceIsFiat ? 'Search tokens...' : 'Search currencies...'}
+                searchPlaceholder={crossSourceIsFiat
+                  ? t('dashboardCurrencyExchange.placeholders.searchTokens')
+                  : t('dashboardCurrencyExchange.placeholders.searchCurrencies')}
+                emptyMessage={t('dashboardCurrencyExchange.placeholders.noOptions')}
               />
             </div>
           </div>
@@ -968,7 +1000,7 @@ export default function CurrencyExchangeControlPanel({
               <div>
                 <p className="text-[11px] text-[#006446]/70">{t('dashboardCurrencyExchange.summary.rate')}</p>
                 <p className="mt-1 font-medium text-slate-900">
-                  1 {crossFromAsset} = {crossSourceIsFiat ? formatCryptoAmount(crossRate) : crossRate.toFixed(2)} {crossToAsset}
+                  1 {crossFromAsset} = {crossSourceIsFiat ? formatCryptoAmount(crossRate) : formatNumber(crossRate, 2)} {crossToAsset}
                 </p>
               </div>
               <div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Copy, Check, ChevronDown } from 'lucide-react';
 import { CryptoWallet } from '../../hooks/useCryptoWallets';
+import { useLanguage } from '../../contexts/LanguageContext';
 import CryptoWalletQRCode from '../ui/CryptoWalletQRCode';
 
 const TOKEN_BADGE_STYLE = {
@@ -21,6 +22,7 @@ export default function CryptoPaymentPanel({
   selectedWallet,
   onSelectWallet,
 }: CryptoPaymentPanelProps) {
+  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -41,7 +43,7 @@ export default function CryptoPaymentPanel({
   if (wallets.length === 0) {
     return (
       <div className="rounded-2xl border border-[#006446]/14 bg-[#006446]/[0.04] py-8 text-center text-sm text-[#006446]">
-        No crypto wallets found. Please contact support.
+        {t('dashboardBillPay.crypto.noWallets')}
       </div>
     );
   }
@@ -49,7 +51,9 @@ export default function CryptoPaymentPanel({
   return (
     <div className="space-y-5">
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-slate-800">Select Cryptocurrency</label>
+        <label className="mb-1.5 block text-sm font-medium text-slate-800">
+          {t('dashboardBillPay.crypto.select')}
+        </label>
         <div className="relative">
           <button
             type="button"
@@ -70,11 +74,13 @@ export default function CryptoPaymentPanel({
                 </span>
                 <div className="text-left">
                   <p className="font-medium text-slate-900">{selectedWallet.name}</p>
-                  <p className="text-xs text-[#006446]/70">{selectedWallet.network} Network</p>
+                  <p className="text-xs text-[#006446]/70">
+                    {t('dashboardBillPay.crypto.network')} {selectedWallet.network}
+                  </p>
                 </div>
               </div>
             ) : (
-              <span className="text-[#006446]/70">Choose a wallet...</span>
+              <span className="text-[#006446]/70">{t('dashboardBillPay.crypto.chooseWallet')}</span>
             )}
             <ChevronDown className={`h-4 w-4 text-[#006446] transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
           </button>
@@ -118,7 +124,7 @@ export default function CryptoPaymentPanel({
             <div className="flex-1 min-w-0 space-y-3 text-center sm:text-left">
               <div>
                 <p className="mb-1 text-xs font-medium uppercase tracking-wider text-[#006446]">
-                  {selectedWallet.name} Wallet Address
+                  {t('dashboardBillPay.crypto.walletAddress')} — {selectedWallet.name}
                 </p>
                 <p className="text-sm font-mono text-slate-800 break-all leading-relaxed">
                   {selectedWallet.wallet_address}
@@ -134,16 +140,20 @@ export default function CryptoPaymentPanel({
                 }`}
               >
                 {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                {copied ? 'Copied' : 'Copy Address'}
+                {copied
+                  ? t('dashboardBillPay.crypto.copied')
+                  : t('dashboardBillPay.crypto.copyAddress')}
               </button>
               <div className="flex items-center gap-2 text-xs text-[#006446]/70">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#006446]" />
-                Network: {selectedWallet.network}
+                {t('dashboardBillPay.crypto.network')} {selectedWallet.network}
               </div>
             </div>
           </div>
           <p className="border-t border-[#006446]/10 pt-3 text-xs leading-relaxed text-slate-600">
-            Send only {selectedWallet.symbol} to this address. Sending other assets may result in permanent loss.
+            {t('dashboardBillPay.crypto.sendOnly')} {selectedWallet.symbol}{' '}
+            {t('dashboardBillPay.crypto.toAddress')}{' '}
+            {t('dashboardBillPay.crypto.assetWarning')}
           </p>
         </div>
       )}

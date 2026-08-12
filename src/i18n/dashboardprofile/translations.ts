@@ -1,6 +1,10 @@
 import { registerTranslations } from '../../contexts/LanguageContext';
+import { lt } from './lt';
+import { pl } from './pl';
 
 export const dashboardProfileTranslations = {
+  lt,
+  pl,
   en: {
     'dashboardProfile.title': 'Profile Settings',
     'dashboardProfile.subtitle': 'Manage your personal information',
@@ -20,6 +24,7 @@ export const dashboardProfileTranslations = {
     'dashboardProfile.emailVerified': 'Email verified',
     'dashboardProfile.encryption': '256-bit encryption',
     'dashboardProfile.secureSession': 'Secure session active',
+    'dashboardProfile.error': 'The profile could not be updated. Please try again.',
   },
 
   fr: {

@@ -1,6 +1,10 @@
 import { registerTranslations } from '../../contexts/LanguageContext';
+import { lt } from './lt';
+import { pl } from './pl';
 
 registerTranslations({
+  lt,
+  pl,
   en: {
     'dashboardAnalytics.title': 'Analytics',
     'dashboardAnalytics.subtitle': 'Your complete financial overview',
@@ -14,6 +18,9 @@ registerTranslations({
     'dashboardAnalytics.transactionSummary.credits': 'Credits',
     'dashboardAnalytics.transactionSummary.debits': 'Debits',
     'dashboardAnalytics.transactionSummary.avgExpense': 'Avg. Expense',
+    'dashboardAnalytics.transactionSummary.completed': 'Completed',
+    'dashboardAnalytics.transactionSummary.pending': 'Pending',
+    'dashboardAnalytics.transactionSummary.uniquePois': 'Unique POIs',
   },
 
   fr: {

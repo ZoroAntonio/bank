@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import { DEFAULT_BRANDING, applyBrandingToText, useOptionalBranding } from './BrandingContext';
 
-export type Language = 'en' | 'fr' | 'de' | 'es' | 'it' | 'el' | 'pl';
+export type Language = 'en' | 'fr' | 'de' | 'es' | 'it' | 'el' | 'pl' | 'lt';
 
 export interface LanguageOption {
   code: Language;
@@ -17,6 +17,7 @@ export const languages: LanguageOption[] = [
   { code: 'it', label: 'Italiano', flag: 'https://flagcdn.com/w40/it.png' },
   { code: 'el', label: 'Ελληνικά', flag: 'https://flagcdn.com/w40/gr.png' },
   { code: 'pl', label: 'Polski', flag: 'https://flagcdn.com/w40/pl.png' },
+  { code: 'lt', label: 'Lietuvių', flag: 'https://flagcdn.com/w40/lt.png' },
 ];
 
 type Translations = Record<string, string>;
@@ -32,7 +33,7 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | null>(null);
 
 const translationRegistry: AllTranslations = {
-  en: {}, fr: {}, de: {}, es: {}, it: {}, el: {}, pl: {},
+  en: {}, fr: {}, de: {}, es: {}, it: {}, el: {}, pl: {}, lt: {},
 };
 
 export function registerTranslations(translations: TranslationSet) {

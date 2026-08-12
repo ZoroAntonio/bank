@@ -5,6 +5,7 @@ import type { CryptoBalance } from '../../hooks/useCryptoBalances';
 import Dropdown from '../ui/Dropdown';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { isBalanceAvailable } from '../../lib/balanceStatus';
+import { getLocalizedTransferError } from '../../lib/transferErrorI18n';
 import '../../i18n/internal-crypto-transfer-panel/translations';
 
 const CRYPTO_COLORS: Record<string, { bg: string; text: string }> = {
@@ -36,7 +37,7 @@ export default function InternalCryptoTransferPanel({
   onSubmit,
   onSuccess,
 }: Props) {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const actionableWallets = wallets.filter((wallet) => {
     const balance = balances.find((entry) => entry.symbol === wallet.symbol);
     return balance ? isBalanceAvailable(balance.status) : false;
@@ -88,7 +89,7 @@ export default function InternalCryptoTransferPanel({
     });
 
     if (result.error) {
-      setError(result.error);
+      setError(getLocalizedTransferError(result.error, t, language));
     } else {
       setSuccess(true);
       setAmount('');
@@ -127,7 +128,7 @@ export default function InternalCryptoTransferPanel({
         {restrictedCount > 0 && (
           <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            Pending and frozen balances remain visible for reference but cannot be used for crypto transfers.
+            {t('internalCryptoTransfer.restrictedBalances')}
           </div>
         )}
 
@@ -259,7 +260,7 @@ export default function InternalCryptoTransferPanel({
 
         {actionableWallets.length < 2 && (
           <p className="text-xs text-slate-400 text-center">
-            You need at least two available crypto balances to use internal crypto transfers.
+            {t('internalCryptoTransfer.needTwoWallets')}
           </p>
         )}
       </form>

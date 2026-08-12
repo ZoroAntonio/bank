@@ -1,6 +1,10 @@
 import { registerTranslations } from '../../contexts/LanguageContext';
+import { lt } from './lt';
+import { pl } from './pl';
 
 registerTranslations({
+  lt,
+  pl,
   en: {
     'dashboardLoans.title': 'Loans',
     'dashboardLoans.subtitle': 'Apply for loans and manage your repayments',
@@ -13,6 +17,9 @@ registerTranslations({
 
     'dashboardLoans.messages.applicationSubmitted': 'Loan application submitted for review!',
     'dashboardLoans.messages.paymentSuccess': 'Payment processed successfully!',
+    'dashboardLoans.messages.notAuthenticated': 'You must be signed in to manage loans.',
+    'dashboardLoans.messages.loanNotFound': 'The selected loan could not be found.',
+    'dashboardLoans.messages.requestError': 'The request could not be completed. Please try again.',
 
     'dashboardLoans.summary.outstanding': 'Outstanding',
     'dashboardLoans.summary.activeLoans': 'Active Loans',

@@ -1,6 +1,10 @@
 import { registerTranslations } from '../../contexts/LanguageContext';
+import { lt } from './lt';
+import { pl } from './pl';
 
 export const balanceHistoryChartTranslations = {
+  lt,
+  pl,
   en: {
     'balanceHistoryChart.title': 'Balance Over Time',
     'balanceHistoryChart.empty.title': 'No balance history yet',

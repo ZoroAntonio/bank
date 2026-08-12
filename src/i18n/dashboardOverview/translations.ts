@@ -1,6 +1,8 @@
 import { registerTranslations } from '../../contexts/LanguageContext';
+import { lt } from './lt';
 
 registerTranslations({
+  lt,
   en: {
     'dashboardOverview.greeting.morning': 'Good Morning',
     'dashboardOverview.greeting.afternoon': 'Good Afternoon',

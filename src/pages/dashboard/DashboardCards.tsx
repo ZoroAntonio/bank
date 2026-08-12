@@ -40,6 +40,18 @@ function formatCardNumber(num: string) {
   return getCardNumberGroups(num).join(' ');
 }
 
+function formatCurrency(value: number, currency: string, language: string) {
+  try {
+    return new Intl.NumberFormat(language, {
+      style: 'currency',
+      currency,
+      maximumFractionDigits: 0,
+    }).format(value);
+  } catch {
+    return `${value.toLocaleString(language)} ${currency}`;
+  }
+}
+
 type SelectOption<T extends string | number> = {
   value: T;
   label: string;
@@ -139,7 +151,7 @@ const INITIAL_FORM: CardApplication = {
 
 export default function DashboardCards() {
   const { cards, pendingApplications, loading, toggleFreeze, createCard } = useCards();
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
 
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<CardApplication>({ ...INITIAL_FORM });
@@ -165,6 +177,7 @@ export default function DashboardCards() {
   ];
 
   const COUNTRY_OPTIONS = [
+    { value: 'LT', label: t('dashboardCards.countries.LT') },
     { value: 'US', label: t('dashboardCards.countries.US') },
     { value: 'CA', label: t('dashboardCards.countries.CA') },
     { value: 'FR', label: t('dashboardCards.countries.FR') },
@@ -191,11 +204,11 @@ export default function DashboardCards() {
   const MONTHLY_LIMIT_OPTIONS = [5000, 10000, 25000, 50000, 100000];
   const DAILY_LIMIT_SELECT_OPTIONS = DAILY_LIMIT_OPTIONS.map((value) => ({
     value,
-    label: `$${value.toLocaleString()}`,
+    label: formatCurrency(value, form.currency, language),
   }));
   const MONTHLY_LIMIT_SELECT_OPTIONS = MONTHLY_LIMIT_OPTIONS.map((value) => ({
     value,
-    label: `$${value.toLocaleString()}`,
+    label: formatCurrency(value, form.currency, language),
   }));
 
   const updateField = <K extends keyof CardApplication>(key: K, value: CardApplication[K]) => {
@@ -221,7 +234,7 @@ export default function DashboardCards() {
     });
 
     if (res?.error) {
-      setResult({ success: false, message: res.error });
+      setResult({ success: false, message: t('dashboardCards.messages.applicationError') });
     } else {
       setResult({
         success: true,
@@ -238,7 +251,7 @@ export default function DashboardCards() {
   const handleFreeze = async (cardId: string, status: string) => {
     const res = await toggleFreeze(cardId, status);
     if (res?.error) {
-      setResult({ success: false, message: res.error });
+      setResult({ success: false, message: t('dashboardCards.messages.updateError') });
     }
   };
 
@@ -565,7 +578,9 @@ export default function DashboardCards() {
                     </label>
 
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#006446] text-sm">$</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#006446] text-xs">
+                        {form.currency}
+                      </span>
                       <input
                         type="number"
                         step="1000"
@@ -573,7 +588,7 @@ export default function DashboardCards() {
                         value={form.annualIncome || ''}
                         onChange={(e) => updateField('annualIncome', parseFloat(e.target.value) || 0)}
                         placeholder={t('dashboardCards.placeholders.annualIncome')}
-                        className="w-full rounded-xl border border-[#006446]/14 py-2.5 pl-8 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#006446]/20"
+                        className="w-full rounded-xl border border-[#006446]/14 py-2.5 pl-14 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#006446]/20"
                         required
                       />
                     </div>
@@ -647,12 +662,16 @@ export default function DashboardCards() {
 
                       <div className="flex justify-between">
                         <span className="text-[#006446]">{t('dashboardCards.summary.dailyLimit')}</span>
-                        <span className="text-slate-900 font-medium">${form.dailyLimit.toLocaleString()}</span>
+                        <span className="text-slate-900 font-medium">
+                          {formatCurrency(form.dailyLimit, form.currency, language)}
+                        </span>
                       </div>
 
                       <div className="flex justify-between">
                         <span className="text-[#006446]">{t('dashboardCards.summary.monthlyLimit')}</span>
-                        <span className="text-slate-900 font-medium">${form.monthlyLimit.toLocaleString()}</span>
+                        <span className="text-slate-900 font-medium">
+                          {formatCurrency(form.monthlyLimit, form.currency, language)}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -770,12 +789,16 @@ export default function DashboardCards() {
               <div className="space-y-3 rounded-2xl border border-[#006446]/14 bg-white p-4 shadow-[0_24px_60px_-48px_rgba(0,100,70,0.45)]">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-[#006446]">{t('dashboardCards.card.dailyLimit')}</span>
-                  <span className="font-medium text-slate-900">${card.daily_limit.toLocaleString()}</span>
+                  <span className="font-medium text-slate-900">
+                    {formatCurrency(card.daily_limit, card.currency || 'USD', language)}
+                  </span>
                 </div>
 
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-[#006446]">{t('dashboardCards.card.monthlyLimit')}</span>
-                  <span className="font-medium text-slate-900">${card.monthly_limit.toLocaleString()}</span>
+                  <span className="font-medium text-slate-900">
+                    {formatCurrency(card.monthly_limit, card.currency || 'USD', language)}
+                  </span>
                 </div>
 
                 <div className="flex gap-2 border-t border-[#006446]/10 pt-2">

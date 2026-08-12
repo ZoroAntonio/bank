@@ -41,8 +41,10 @@ import {
 } from '../../lib/balanceStatusI18n';
 import '../../i18n/dashboard-transfers/translations';
 
-function formatCurrency(amount: number, currency: string) {
-  return new Intl.NumberFormat('en-US', {
+type Translate = (key: string) => string;
+
+function formatCurrency(amount: number, currency: string, locale: string) {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
@@ -75,82 +77,150 @@ function formatDayMonthYear(dateStr: string) {
 
 type TransferInvoice = PdfInvoiceDocument;
 
-function formatInvoiceNumber(value: number) {
-  return new Intl.NumberFormat('en-US', {
+function formatInvoiceNumber(value: number, locale: string) {
+  return new Intl.NumberFormat(locale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 8,
   }).format(value);
 }
 
-function formatInvoiceFiatAmount(amount: number, currency: string) {
-  return `${currency} ${formatInvoiceNumber(amount)}`;
+function formatInvoiceFiatAmount(amount: number, currency: string, locale: string) {
+  return `${currency} ${formatInvoiceNumber(amount, locale)}`;
 }
 
-function buildBankTransferInvoice(transfer: BankTransfer, formatDate: (dateStr: string) => string): TransferInvoice {
+function interpolate(template: string, values: Record<string, string>) {
+  return Object.entries(values).reduce(
+    (result, [key, value]) => result.split(`{${key}}`).join(value),
+    template
+  );
+}
+
+function getInvoiceLabels(t: Translate) {
+  return {
+    date: t('dashboardTransfers.invoice.date'),
+    invoiceNumber: t('dashboardTransfers.invoice.invoiceNumber'),
+    reference: t('dashboardTransfers.invoice.reference'),
+    status: t('dashboardTransfers.invoice.status'),
+    issued: t('dashboardTransfers.invoice.issued'),
+    scanToVerify: t('dashboardTransfers.invoice.scanToVerify'),
+    description: t('dashboardTransfers.invoice.description'),
+    amount: t('dashboardTransfers.invoice.amount'),
+    totalAmount: t('dashboardTransfers.invoice.totalAmount'),
+    notes: t('dashboardTransfers.invoice.notes'),
+  };
+}
+
+function getStatusLabel(t: Translate, status: string) {
+  const key = `dashboardTransfers.status.${status.toLowerCase()}`;
+  const translated = t(key);
+  return translated === key ? toTitleCase(status) : translated;
+}
+
+function getLocalizedBankDescription(transfer: BankTransfer, t: Translate) {
+  const internalDefault = `Transfer ${transfer.currency} to ${transfer.target_currency}`;
+  const externalDefault = `Transfer to ${transfer.recipient_name}`;
+
+  if (transfer.transfer_type === 'internal' && (!transfer.description || transfer.description === internalDefault)) {
+    return interpolate(t('dashboardTransfers.defaults.internalBank'), {
+      source: transfer.currency,
+      target: transfer.target_currency || '-',
+    });
+  }
+  if (transfer.transfer_type === 'external' && (!transfer.description || transfer.description === externalDefault)) {
+    return interpolate(t('dashboardTransfers.defaults.externalBank'), {
+      recipient: transfer.recipient_name,
+    });
+  }
+  return transfer.description;
+}
+
+function getLocalizedCryptoNote(transfer: CryptoTransfer, t: Translate) {
+  const internalDefault = `Convert ${transfer.symbol} to ${transfer.target_symbol}`;
+  const sendDefault = `Send ${transfer.symbol} to external wallet`;
+  const receiveDefault = `Receive ${transfer.symbol} from external wallet`;
+
+  if (transfer.transfer_type === 'internal' && (!transfer.note || transfer.note === internalDefault)) {
+    return interpolate(t('dashboardTransfers.defaults.internalCrypto'), {
+      source: transfer.symbol,
+      target: transfer.target_symbol || '-',
+    });
+  }
+  if (transfer.direction === 'send' && (!transfer.note || transfer.note === sendDefault)) {
+    return interpolate(t('dashboardTransfers.defaults.sendCrypto'), { asset: transfer.symbol });
+  }
+  if (transfer.direction === 'receive' && (!transfer.note || transfer.note === receiveDefault)) {
+    return interpolate(t('dashboardTransfers.defaults.receiveCrypto'), { asset: transfer.symbol });
+  }
+  return transfer.note;
+}
+
+function buildBankTransferInvoice(transfer: BankTransfer, formatDate: (dateStr: string) => string, t: Translate, locale: string): TransferInvoice {
   const isInternal = transfer.transfer_type === 'internal';
 
   return {
     title: isInternal
-      ? `${transfer.currency} to ${transfer.target_currency || '-'}`
-      : transfer.recipient_name || 'External bank transfer',
-    documentTitle: 'Transfer Invoice',
-    sectionTitle: 'Transfer Details',
-    subtitle: 'Professional transfer confirmation generated for customer records.',
+      ? `${transfer.currency} ${t('dashboardTransfers.common.to')} ${transfer.target_currency || '-'}`
+      : transfer.recipient_name || t('dashboardTransfers.banking.externalTransfer'),
+    documentTitle: t('dashboardTransfers.invoice.documentTitle'),
+    sectionTitle: t('dashboardTransfers.invoice.sectionTitle'),
+    subtitle: t('dashboardTransfers.invoice.subtitle'),
+    labels: getInvoiceLabels(t),
     invoiceNumber: createTrxInvoiceNumber(),
     referenceId: transfer.id,
     date: formatDate(transfer.created_at),
-    status: toTitleCase(transfer.status),
-    amount: formatInvoiceFiatAmount(transfer.amount, transfer.currency),
-    notes: transfer.description || 'Official transfer confirmation generated for customer records.',
+    status: getStatusLabel(t, transfer.status),
+    amount: formatInvoiceFiatAmount(transfer.amount, transfer.currency, locale),
+    notes: getLocalizedBankDescription(transfer, t) || t('dashboardTransfers.invoice.defaultNote'),
     fields: [
-      { label: 'Transfer Date', value: formatDate(transfer.created_at) },
-      { label: 'Transfer Type', value: isInternal ? 'Internal' : 'External' },
-      { label: 'Status', value: toTitleCase(transfer.status) },
-      { label: 'Reference ID', value: transfer.id },
-      { label: 'Amount', value: formatInvoiceFiatAmount(transfer.amount, transfer.currency) },
-      { label: 'Source Currency', value: transfer.currency },
-      { label: 'Target Currency', value: isInternal ? transfer.target_currency : undefined },
-      { label: 'Recipient Name', value: isInternal ? undefined : transfer.recipient_name },
-      { label: 'Beneficiary Bank', value: isInternal ? undefined : transfer.bank_name },
-      { label: 'IBAN', value: isInternal ? undefined : transfer.iban },
-      { label: 'Account Number', value: isInternal ? undefined : transfer.account_number },
-      { label: 'SWIFT Code', value: isInternal ? undefined : transfer.swift_code },
-      { label: 'Description', value: transfer.description },
+      { label: t('dashboardTransfers.details.transferDate'), value: formatDate(transfer.created_at) },
+      { label: t('dashboardTransfers.details.transferType'), value: isInternal ? t('dashboardTransfers.details.internal') : t('dashboardTransfers.details.external') },
+      { label: t('dashboardTransfers.details.status'), value: getStatusLabel(t, transfer.status) },
+      { label: t('dashboardTransfers.details.referenceId'), value: transfer.id },
+      { label: t('dashboardTransfers.details.amount'), value: formatInvoiceFiatAmount(transfer.amount, transfer.currency, locale) },
+      { label: t('dashboardTransfers.details.sourceCurrency'), value: transfer.currency },
+      { label: t('dashboardTransfers.details.targetCurrency'), value: isInternal ? transfer.target_currency : undefined },
+      { label: t('dashboardTransfers.details.recipientName'), value: isInternal ? undefined : transfer.recipient_name },
+      { label: t('dashboardTransfers.details.beneficiaryBank'), value: isInternal ? undefined : transfer.bank_name },
+      { label: t('dashboardTransfers.details.iban'), value: isInternal ? undefined : transfer.iban },
+      { label: t('dashboardTransfers.details.accountNumber'), value: isInternal ? undefined : transfer.account_number },
+      { label: t('dashboardTransfers.details.swiftCode'), value: isInternal ? undefined : transfer.swift_code },
+      { label: t('dashboardTransfers.details.description'), value: getLocalizedBankDescription(transfer, t) },
     ],
   };
 }
 
-function buildCryptoTransferInvoice(transfer: CryptoTransfer, formatDate: (dateStr: string) => string): TransferInvoice {
+function buildCryptoTransferInvoice(transfer: CryptoTransfer, formatDate: (dateStr: string) => string, t: Translate): TransferInvoice {
   const isInternal = transfer.transfer_type === 'internal';
   const isReceive = transfer.direction === 'receive';
 
   return {
     title: isInternal
-      ? `${transfer.symbol} to ${transfer.target_symbol || '-'}`
-      : `${toTitleCase(transfer.direction)} ${transfer.symbol}`,
-    documentTitle: 'Transfer Invoice',
-    sectionTitle: 'Transfer Details',
-    subtitle: 'Professional transfer confirmation generated for customer records.',
+      ? `${transfer.symbol} ${t('dashboardTransfers.common.to')} ${transfer.target_symbol || '-'}`
+      : `${transfer.direction === 'receive' ? t('dashboardTransfers.crypto.receive') : t('dashboardTransfers.crypto.send')} ${transfer.symbol}`,
+    documentTitle: t('dashboardTransfers.invoice.documentTitle'),
+    sectionTitle: t('dashboardTransfers.invoice.sectionTitle'),
+    subtitle: t('dashboardTransfers.invoice.subtitle'),
+    labels: getInvoiceLabels(t),
     invoiceNumber: createTrxInvoiceNumber(),
     referenceId: transfer.id,
     date: formatDate(transfer.created_at),
-    status: toTitleCase(transfer.status),
+    status: getStatusLabel(t, transfer.status),
     amount: formatCryptoAmount(transfer.amount, transfer.symbol),
-    notes: transfer.note || 'Official crypto transfer confirmation generated for customer records.',
+    notes: getLocalizedCryptoNote(transfer, t) || t('dashboardTransfers.invoice.cryptoDefaultNote'),
     fields: [
-      { label: 'Transfer Date', value: formatDate(transfer.created_at) },
-      { label: 'Transfer Type', value: isInternal ? 'Internal' : 'External' },
-      { label: 'Direction', value: toTitleCase(transfer.direction) },
-      { label: 'Status', value: toTitleCase(transfer.status) },
-      { label: 'Reference ID', value: transfer.id },
-      { label: 'Amount', value: formatCryptoAmount(transfer.amount, transfer.symbol) },
-      { label: 'Asset', value: transfer.symbol },
-      { label: 'Target Asset', value: isInternal ? transfer.target_symbol : undefined },
-      { label: 'Sender Address', value: !isInternal ? transfer.sender_address : undefined },
-      { label: isReceive ? 'Receiving Address' : 'Recipient Address', value: !isInternal ? transfer.recipient_address : undefined },
-      { label: 'Network Fee', value: !isInternal ? formatCryptoAmount(Number(transfer.fee || 0), transfer.symbol) : undefined },
-      { label: 'Transaction Hash', value: transfer.tx_hash },
-      { label: 'Note', value: transfer.note },
+      { label: t('dashboardTransfers.details.transferDate'), value: formatDate(transfer.created_at) },
+      { label: t('dashboardTransfers.details.transferType'), value: isInternal ? t('dashboardTransfers.details.internal') : t('dashboardTransfers.details.external') },
+      { label: t('dashboardTransfers.details.direction'), value: isReceive ? t('dashboardTransfers.details.receive') : t('dashboardTransfers.details.send') },
+      { label: t('dashboardTransfers.details.status'), value: getStatusLabel(t, transfer.status) },
+      { label: t('dashboardTransfers.details.referenceId'), value: transfer.id },
+      { label: t('dashboardTransfers.details.amount'), value: formatCryptoAmount(transfer.amount, transfer.symbol) },
+      { label: t('dashboardTransfers.details.asset'), value: transfer.symbol },
+      { label: t('dashboardTransfers.details.targetAsset'), value: isInternal ? transfer.target_symbol : undefined },
+      { label: t('dashboardTransfers.details.senderAddress'), value: !isInternal ? transfer.sender_address : undefined },
+      { label: isReceive ? t('dashboardTransfers.details.receivingAddress') : t('dashboardTransfers.details.recipientAddress'), value: !isInternal ? transfer.recipient_address : undefined },
+      { label: t('dashboardTransfers.details.networkFee'), value: !isInternal ? formatCryptoAmount(Number(transfer.fee || 0), transfer.symbol) : undefined },
+      { label: t('dashboardTransfers.details.transactionHash'), value: transfer.tx_hash },
+      { label: t('dashboardTransfers.details.note'), value: getLocalizedCryptoNote(transfer, t) },
     ],
   };
 }
@@ -475,6 +545,7 @@ function BankTransferHistory({
   transfers: BankTransfer[];
   type: SubTab;
 }) {
+  const { language } = useLanguage();
   const [selectedTransfer, setSelectedTransfer] = useState<BankTransfer | null>(null);
 
   return (
@@ -530,7 +601,7 @@ function BankTransferHistory({
 
                 <div className="flex-shrink-0 text-right">
                   <p className="text-sm font-semibold text-slate-900 tabular-nums">
-                    {formatCurrency(tx.amount, tx.currency)}
+                    {formatCurrency(tx.amount, tx.currency, language)}
                   </p>
                   <StatusBadge t={t} status={tx.status} />
                 </div>
@@ -543,6 +614,7 @@ function BankTransferHistory({
       {selectedTransfer && (
         <BankTransferDetailModal
           t={t}
+          language={language}
           branding={branding}
           formatDate={formatDate}
           transfer={selectedTransfer}
@@ -736,11 +808,14 @@ function FiatBalancesSidebar({
   t: (key: string) => string;
   balances: FiatBalance[];
 }) {
+  const { language } = useLanguage();
   return (
     <div className="rounded-2xl border border-[#006446]/14 bg-white p-5 shadow-[0_24px_60px_-48px_rgba(0,100,70,0.45)]">
       <div className="mb-3 flex items-center gap-2">
         <Building2 className="h-4 w-4 text-[#006446]" />
-        <h3 className="text-sm font-semibold text-slate-900">Account balances</h3>
+        <h3 className="text-sm font-semibold text-slate-900">
+          {t('dashboardTransfers.fiatBalances.title')}
+        </h3>
       </div>
 
       <div className="space-y-1">
@@ -760,7 +835,7 @@ function FiatBalancesSidebar({
               </div>
             </div>
             <span className="text-xs font-semibold tabular-nums text-slate-900">
-              {formatCurrency(Number(balance.balance), balance.currency)}
+              {formatCurrency(Number(balance.balance), balance.currency, language)}
             </span>
           </div>
         ))}
@@ -789,6 +864,7 @@ function DetailRow({
 }
 
 function TransferDetailShell({
+  t,
   title,
   subtitle,
   children,
@@ -796,6 +872,7 @@ function TransferDetailShell({
   onDownloadInvoice,
   invoiceAvailable,
 }: {
+  t: Translate;
   title: string;
   subtitle: string;
   children: ReactNode;
@@ -807,7 +884,7 @@ function TransferDetailShell({
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-transparent p-4">
       <button
         type="button"
-        aria-label="Close transfer details"
+        aria-label={t('dashboardTransfers.details.close')}
         className="absolute inset-0 cursor-default"
         onClick={onClose}
       />
@@ -815,7 +892,9 @@ function TransferDetailShell({
       <section className="relative z-10 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-[#006446]/14 bg-white shadow-[0_28px_80px_-36px_rgba(15,23,42,0.55)]">
         <div className="sticky top-0 z-10 flex flex-col gap-4 border-b border-[#006446]/10 bg-white px-6 py-5 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#006446]">Transfer details</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#006446]">
+              {t('dashboardTransfers.details.heading')}
+            </p>
             <h3 className="mt-1 text-xl font-serif font-bold text-slate-950">{title}</h3>
             <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
           </div>
@@ -825,7 +904,9 @@ function TransferDetailShell({
               type="button"
               onClick={onDownloadInvoice}
               disabled={!invoiceAvailable}
-              title={invoiceAvailable ? 'Download invoice' : 'Invoice available when transfer is completed'}
+              title={invoiceAvailable
+                ? t('dashboardTransfers.details.downloadTitle')
+                : t('dashboardTransfers.details.invoiceUnavailable')}
               className={`inline-flex h-10 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold transition-colors ${
                 invoiceAvailable
                   ? 'bg-[#006446] text-white shadow-[0_14px_28px_-20px_rgba(0,100,70,0.85)] hover:bg-[#00563d]'
@@ -833,14 +914,14 @@ function TransferDetailShell({
               }`}
             >
               <Download className="h-4 w-4" />
-              Download Invoice
+              {t('dashboardTransfers.details.download')}
             </button>
 
             <button
               type="button"
               onClick={onClose}
               className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-[#006446]/12 text-[#006446] transition-colors hover:bg-[#006446]/[0.05]"
-              aria-label="Close transfer details"
+              aria-label={t('dashboardTransfers.details.close')}
             >
               <X className="h-4 w-4" />
             </button>
@@ -855,12 +936,14 @@ function TransferDetailShell({
 
 function BankTransferDetailModal({
   t,
+  language,
   branding,
   formatDate,
   transfer,
   onClose,
 }: {
   t: (key: string) => string;
+  language: string;
   branding: BrandingSettings;
   formatDate: (dateStr: string) => string;
   transfer: BankTransfer;
@@ -873,10 +956,16 @@ function BankTransferDetailModal({
 
   return (
     <TransferDetailShell
+      t={t}
       title={title}
-      subtitle={`${isInternal ? 'Internal bank transfer' : 'External bank transfer'} - ${formatDate(transfer.created_at)}`}
+      subtitle={interpolate(
+        t(isInternal
+          ? 'dashboardTransfers.details.internalBankSubtitle'
+          : 'dashboardTransfers.details.externalBankSubtitle'),
+        { date: formatDate(transfer.created_at) }
+      )}
       onClose={onClose}
-      onDownloadInvoice={() => downloadTransferInvoice(buildBankTransferInvoice(transfer, formatDate), branding)}
+      onDownloadInvoice={() => downloadTransferInvoice(buildBankTransferInvoice(transfer, formatDate, t, language), branding)}
       invoiceAvailable={transfer.status === 'completed'}
     >
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#006446]/10 bg-white px-4 py-3">
@@ -884,29 +973,29 @@ function BankTransferDetailModal({
           {isInternal ? <ArrowRightLeft className="h-5 w-5" /> : <Building2 className="h-5 w-5" />}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-slate-950">{formatCurrency(transfer.amount, transfer.currency)}</p>
+          <p className="text-sm font-semibold text-slate-950">{formatCurrency(transfer.amount, transfer.currency, language)}</p>
           <p className="text-xs text-slate-500">{transfer.id}</p>
         </div>
         <StatusBadge t={t} status={transfer.status} />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <DetailRow label="Created" value={formatDate(transfer.created_at)} />
-        <DetailRow label="Transfer type" value={toTitleCase(transfer.transfer_type)} />
-        <DetailRow label="Amount" value={formatCurrency(transfer.amount, transfer.currency)} />
-        <DetailRow label="Source currency" value={transfer.currency} />
+        <DetailRow label={t('dashboardTransfers.details.created')} value={formatDate(transfer.created_at)} />
+        <DetailRow label={t('dashboardTransfers.details.transferType')} value={isInternal ? t('dashboardTransfers.details.internal') : t('dashboardTransfers.details.external')} />
+        <DetailRow label={t('dashboardTransfers.details.amount')} value={formatCurrency(transfer.amount, transfer.currency, language)} />
+        <DetailRow label={t('dashboardTransfers.details.sourceCurrency')} value={transfer.currency} />
         {isInternal ? (
-          <DetailRow label="Target currency" value={transfer.target_currency} />
+          <DetailRow label={t('dashboardTransfers.details.targetCurrency')} value={transfer.target_currency} />
         ) : (
           <>
-            <DetailRow label="Recipient" value={transfer.recipient_name} />
-            <DetailRow label="Bank" value={transfer.bank_name} />
-            <DetailRow label="IBAN" value={transfer.iban} mono />
-            <DetailRow label="Account number" value={transfer.account_number} mono />
-            <DetailRow label="SWIFT code" value={transfer.swift_code} mono />
+            <DetailRow label={t('dashboardTransfers.details.recipient')} value={transfer.recipient_name} />
+            <DetailRow label={t('dashboardTransfers.details.bank')} value={transfer.bank_name} />
+            <DetailRow label={t('dashboardTransfers.details.iban')} value={transfer.iban} mono />
+            <DetailRow label={t('dashboardTransfers.details.accountNumber')} value={transfer.account_number} mono />
+            <DetailRow label={t('dashboardTransfers.details.swiftCode')} value={transfer.swift_code} mono />
           </>
         )}
-        <DetailRow label="Description" value={transfer.description} />
+        <DetailRow label={t('dashboardTransfers.details.description')} value={getLocalizedBankDescription(transfer, t)} />
       </div>
     </TransferDetailShell>
   );
@@ -934,10 +1023,16 @@ function CryptoTransferDetailModal({
 
   return (
     <TransferDetailShell
+      t={t}
       title={title}
-      subtitle={`${isInternal ? 'Internal crypto transfer' : 'External crypto transfer'} - ${formatDate(transfer.created_at)}`}
+      subtitle={interpolate(
+        t(isInternal
+          ? 'dashboardTransfers.details.internalCryptoSubtitle'
+          : 'dashboardTransfers.details.externalCryptoSubtitle'),
+        { date: formatDate(transfer.created_at) }
+      )}
       onClose={onClose}
-      onDownloadInvoice={() => downloadTransferInvoice(buildCryptoTransferInvoice(transfer, formatDate), branding)}
+      onDownloadInvoice={() => downloadTransferInvoice(buildCryptoTransferInvoice(transfer, formatDate, t), branding)}
       invoiceAvailable={transfer.status === 'completed'}
     >
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#006446]/10 bg-white px-4 py-3">
@@ -952,27 +1047,27 @@ function CryptoTransferDetailModal({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <DetailRow label="Created" value={formatDate(transfer.created_at)} />
-        <DetailRow label="Transfer type" value={toTitleCase(transfer.transfer_type)} />
-        <DetailRow label="Direction" value={toTitleCase(transfer.direction)} />
-        <DetailRow label="Amount" value={formatCryptoAmount(transfer.amount, transfer.symbol)} />
-        <DetailRow label="Asset" value={transfer.symbol} />
+        <DetailRow label={t('dashboardTransfers.details.created')} value={formatDate(transfer.created_at)} />
+        <DetailRow label={t('dashboardTransfers.details.transferType')} value={isInternal ? t('dashboardTransfers.details.internal') : t('dashboardTransfers.details.external')} />
+        <DetailRow label={t('dashboardTransfers.details.direction')} value={transfer.direction === 'receive' ? t('dashboardTransfers.details.receive') : t('dashboardTransfers.details.send')} />
+        <DetailRow label={t('dashboardTransfers.details.amount')} value={formatCryptoAmount(transfer.amount, transfer.symbol)} />
+        <DetailRow label={t('dashboardTransfers.details.asset')} value={transfer.symbol} />
         {isInternal ? (
-          <DetailRow label="Target asset" value={transfer.target_symbol} />
+          <DetailRow label={t('dashboardTransfers.details.targetAsset')} value={transfer.target_symbol} />
         ) : transfer.direction === 'receive' ? (
           <>
-            <DetailRow label="Sender address" value={transfer.sender_address} mono />
-            <DetailRow label="Receiving address" value={transfer.recipient_address} mono />
+            <DetailRow label={t('dashboardTransfers.details.senderAddress')} value={transfer.sender_address} mono />
+            <DetailRow label={t('dashboardTransfers.details.receivingAddress')} value={transfer.recipient_address} mono />
           </>
         ) : (
           <>
-            <DetailRow label="Recipient address" value={transfer.recipient_address} mono />
-            <DetailRow label="Sender address" value={transfer.sender_address} mono />
+            <DetailRow label={t('dashboardTransfers.details.recipientAddress')} value={transfer.recipient_address} mono />
+            <DetailRow label={t('dashboardTransfers.details.senderAddress')} value={transfer.sender_address} mono />
           </>
         )}
-        <DetailRow label="Network fee" value={formatCryptoAmount(Number(transfer.fee || 0), transfer.symbol)} />
-        <DetailRow label="Transaction hash" value={transfer.tx_hash} mono />
-        <DetailRow label="Note" value={transfer.note} />
+        <DetailRow label={t('dashboardTransfers.details.networkFee')} value={formatCryptoAmount(Number(transfer.fee || 0), transfer.symbol)} />
+        <DetailRow label={t('dashboardTransfers.details.transactionHash')} value={transfer.tx_hash} mono />
+        <DetailRow label={t('dashboardTransfers.details.note')} value={getLocalizedCryptoNote(transfer, t)} />
       </div>
     </TransferDetailShell>
   );

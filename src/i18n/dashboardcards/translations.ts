@@ -1,6 +1,10 @@
 import { registerTranslations } from '../../contexts/LanguageContext';
+import { lt } from './lt';
+import { pl } from './pl';
 
 export const dashboardCardsTranslations = {
+  lt,
+  pl,
   en: {
     'dashboard.assetAllocation.title': 'Asset Allocation',
     'dashboard.assetAllocation.subtitle': 'Portfolio breakdown by asset type',

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertCircle,
@@ -167,6 +167,30 @@ type ProfileSavePayload = {
   assigned_manager_id: string | null;
   assigned_agent_id: string | null;
   password: string;
+};
+
+type NewUserDraft = {
+  full_name: string;
+  email: string;
+  password: string;
+  confirm_password: string;
+  account_iban: string;
+  kyc_status: KycStatus;
+  crm_role: CrmRole;
+  assigned_manager_id: string;
+  assigned_agent_id: string;
+  email_confirm: boolean;
+};
+
+type CreateUserResponse = {
+  error?: string;
+  rollback_warning?: string | null;
+  profile?: ProfileRecord;
+  user?: {
+    id?: string;
+    email?: string;
+    email_confirmed?: boolean;
+  };
 };
 
 type DeleteUserResponse = {
@@ -1320,6 +1344,312 @@ export function ProfileEditorCard({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function CreateUserDialog({
+  profiles,
+  creating,
+  error,
+  onCancel,
+  onCreate,
+}: {
+  profiles: ProfileRecord[];
+  creating: boolean;
+  error: string;
+  onCancel: () => void;
+  onCreate: (draft: NewUserDraft) => Promise<void>;
+}) {
+  const [form, setForm] = useState<NewUserDraft>({
+    full_name: '',
+    email: '',
+    password: '',
+    confirm_password: '',
+    account_iban: '',
+    kyc_status: 'pending',
+    crm_role: 'customer',
+    assigned_manager_id: '',
+    assigned_agent_id: '',
+    email_confirm: true,
+  });
+  const [validationError, setValidationError] = useState('');
+  const roleOptions = useMemo(
+    () => [
+      { value: 'customer', label: getCrmRoleLabel('customer') },
+      { value: 'agent', label: getCrmRoleLabel('agent') },
+      { value: 'superior_manager', label: getCrmRoleLabel('superior_manager') },
+      { value: 'admin', label: getCrmRoleLabel('admin') },
+    ],
+    []
+  );
+  const managerOptions = useMemo(
+    () => [
+      { value: '', label: 'Unassigned' },
+      ...profiles
+        .filter((profile) => profile.crm_role === 'superior_manager')
+        .map((profile) => ({ value: profile.id, label: getProfileDisplayName(profile) })),
+    ],
+    [profiles]
+  );
+  const agentOptions = useMemo(
+    () => [
+      { value: '', label: 'Unassigned' },
+      ...profiles
+        .filter(
+          (profile) =>
+            profile.crm_role === 'agent' &&
+            (!form.assigned_manager_id || profile.assigned_manager_id === form.assigned_manager_id)
+        )
+        .map((profile) => ({ value: profile.id, label: getProfileDisplayName(profile) })),
+    ],
+    [form.assigned_manager_id, profiles]
+  );
+
+  const handleRoleChange = (value: string) => {
+    const nextRole = normalizeCrmRole(value, 'customer');
+    setForm((current) => ({
+      ...current,
+      crm_role: nextRole,
+      assigned_manager_id:
+        nextRole === 'admin' || nextRole === 'superior_manager' ? '' : current.assigned_manager_id,
+      assigned_agent_id: nextRole === 'customer' ? current.assigned_agent_id : '',
+    }));
+  };
+
+  const handleManagerChange = (managerId: string) => {
+    setForm((current) => {
+      const currentAgent = profiles.find((profile) => profile.id === current.assigned_agent_id);
+      const keepAgent =
+        !currentAgent || !managerId || currentAgent.assigned_manager_id === managerId;
+      return {
+        ...current,
+        assigned_manager_id: managerId,
+        assigned_agent_id: keepAgent ? current.assigned_agent_id : '',
+      };
+    });
+  };
+
+  const handleAgentChange = (agentId: string) => {
+    const agent = profiles.find((profile) => profile.id === agentId);
+    setForm((current) => ({
+      ...current,
+      assigned_agent_id: agentId,
+      assigned_manager_id: agent?.assigned_manager_id || current.assigned_manager_id,
+    }));
+  };
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setValidationError('');
+
+    if (!form.full_name.trim()) {
+      setValidationError('Full name is required.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      setValidationError('Enter a valid email address.');
+      return;
+    }
+    if (form.password.length < 6) {
+      setValidationError('Password must be at least 6 characters.');
+      return;
+    }
+    if (form.password !== form.confirm_password) {
+      setValidationError('The password confirmation does not match.');
+      return;
+    }
+
+    void onCreate(form);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[9000] flex items-center justify-center bg-slate-950/55 p-4">
+      <button
+        type="button"
+        onClick={creating ? undefined : onCancel}
+        aria-label="Close create user dialog"
+        className="absolute inset-0 cursor-default"
+      />
+
+      <form
+        noValidate
+        onSubmit={handleSubmit}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-user-title"
+        className="relative z-10 max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[28px] border border-[#006446]/14 bg-white shadow-[0_32px_100px_-38px_rgba(0,100,70,0.65)]"
+      >
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-[#006446]/10 bg-white px-6 py-5">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#006446]">Account setup</p>
+            <h2 id="create-user-title" className="mt-1 text-2xl font-serif font-bold text-slate-950">Create new user</h2>
+            <p className="mt-1 text-sm text-slate-500">Create the login, CRM profile, balances, and wallets in one operation.</p>
+          </div>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={creating}
+            aria-label="Close create user dialog"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#006446]/12 text-[#006446] transition-colors hover:bg-[#006446]/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="grid gap-4 px-6 py-6 md:grid-cols-2">
+          <label className="space-y-2">
+            <span className="text-sm font-medium text-slate-700">Full name *</span>
+            <input
+              value={form.full_name}
+              onChange={(event) => setForm((current) => ({ ...current, full_name: event.target.value }))}
+              disabled={creating}
+              autoFocus
+              autoComplete="name"
+              className="w-full rounded-xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15 disabled:bg-slate-50"
+            />
+          </label>
+
+          <label className="space-y-2">
+            <span className="text-sm font-medium text-slate-700">Email *</span>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+              disabled={creating}
+              autoComplete="email"
+              className="w-full rounded-xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15 disabled:bg-slate-50"
+            />
+          </label>
+
+          <label className="space-y-2">
+            <span className="text-sm font-medium text-slate-700">Password *</span>
+            <input
+              type="password"
+              value={form.password}
+              onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+              disabled={creating}
+              autoComplete="new-password"
+              className="w-full rounded-xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15 disabled:bg-slate-50"
+            />
+            <p className="text-xs text-slate-500">Use at least 6 characters.</p>
+          </label>
+
+          <label className="space-y-2">
+            <span className="text-sm font-medium text-slate-700">Confirm password *</span>
+            <input
+              type="password"
+              value={form.confirm_password}
+              onChange={(event) => setForm((current) => ({ ...current, confirm_password: event.target.value }))}
+              disabled={creating}
+              autoComplete="new-password"
+              className="w-full rounded-xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15 disabled:bg-slate-50"
+            />
+          </label>
+
+          <label className="space-y-2 md:col-span-2">
+            <span className="text-sm font-medium text-slate-700">Account IBAN</span>
+            <input
+              value={form.account_iban}
+              onChange={(event) => setForm((current) => ({ ...current, account_iban: event.target.value }))}
+              disabled={creating}
+              placeholder="Optional"
+              autoComplete="off"
+              className="w-full rounded-xl border border-[#006446]/14 bg-white px-4 py-3 font-mono text-sm uppercase text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15 disabled:bg-slate-50"
+            />
+          </label>
+
+          <div className={`space-y-2 ${creating ? 'pointer-events-none opacity-60' : ''}`}>
+            <span className="text-sm font-medium text-slate-700">KYC status</span>
+            <Dropdown
+              value={form.kyc_status}
+              options={kycOptions}
+              onChange={(value) => setForm((current) => ({ ...current, kyc_status: value as KycStatus }))}
+            />
+          </div>
+
+          <div className={`space-y-2 ${creating ? 'pointer-events-none opacity-60' : ''}`}>
+            <span className="text-sm font-medium text-slate-700">CRM role</span>
+            <Dropdown value={form.crm_role} options={roleOptions} onChange={handleRoleChange} />
+          </div>
+
+          {(form.crm_role === 'customer' || form.crm_role === 'agent') && (
+            <div className="space-y-4 rounded-2xl border border-[#006446]/12 bg-[#006446]/[0.03] px-4 py-4 md:col-span-2">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#006446]">Hierarchy assignment</p>
+                <p className="mt-1 text-sm text-slate-500">Assignments can be left empty and added later.</p>
+              </div>
+              <div className={`grid gap-4 ${form.crm_role === 'customer' ? 'md:grid-cols-2' : ''} ${creating ? 'pointer-events-none opacity-60' : ''}`}>
+                <div className="space-y-2">
+                  <span className="text-sm font-medium text-slate-700">Superior manager</span>
+                  <Dropdown
+                    value={form.assigned_manager_id}
+                    options={managerOptions}
+                    onChange={handleManagerChange}
+                    searchable
+                    searchPlaceholder="Search managers..."
+                  />
+                </div>
+                {form.crm_role === 'customer' && (
+                  <div className="space-y-2">
+                    <span className="text-sm font-medium text-slate-700">Assigned agent</span>
+                    <Dropdown
+                      value={form.assigned_agent_id}
+                      options={agentOptions}
+                      onChange={handleAgentChange}
+                      searchable
+                      searchPlaceholder="Search agents..."
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <label className="flex items-start gap-3 rounded-2xl border border-[#006446]/12 bg-[#006446]/[0.03] px-4 py-4 md:col-span-2">
+            <input
+              type="checkbox"
+              checked={form.email_confirm}
+              onChange={(event) => setForm((current) => ({ ...current, email_confirm: event.target.checked }))}
+              disabled={creating}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-[#006446]"
+            />
+            <span>
+              <span className="block text-sm font-semibold text-slate-800">Mark email as confirmed</span>
+              <span className="mt-1 block text-xs text-slate-500">The user can sign in immediately with the password above.</span>
+            </span>
+          </label>
+
+          {(validationError || error) && (
+            <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 md:col-span-2">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{validationError || error}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="sticky bottom-0 flex flex-col-reverse gap-3 border-t border-[#006446]/10 bg-[#f7fbf8] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-slate-500">Only CRM administrators can create accounts.</p>
+          <div className="flex flex-col-reverse gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={creating}
+              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={creating}
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-[#006446] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#004d36] disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              {creating ? 'Creating user...' : 'Create user'}
+            </button>
+          </div>
+        </div>
+      </form>
     </div>
   );
 }
@@ -3807,6 +4137,9 @@ export default function CrmAdmin() {
   const [loadingProfiles, setLoadingProfiles] = useState(true);
   const [loadingTables, setLoadingTables] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [createUserError, setCreateUserError] = useState('');
   const [deleteUserDialogOpen, setDeleteUserDialogOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState(false);
   const [savingNewRecord, setSavingNewRecord] = useState(false);
@@ -4994,6 +5327,148 @@ export default function CrmAdmin() {
     setSavingNewRecord(false);
   }
 
+  async function handleCreateUser(draft: NewUserDraft) {
+    if (!isViewerAdmin) {
+      setNotice({ kind: 'error', message: 'Only CRM administrators can create users.' });
+      return;
+    }
+
+    const fullName = draft.full_name.trim();
+    const email = draft.email.trim().toLowerCase();
+    if (!fullName) {
+      setNotice({ kind: 'error', message: 'Full name is required.' });
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setNotice({ kind: 'error', message: 'Enter a valid email address.' });
+      return;
+    }
+    if (draft.password.length < 6) {
+      setNotice({ kind: 'error', message: 'Password must be at least 6 characters.' });
+      return;
+    }
+    if (draft.password !== draft.confirm_password) {
+      setNotice({ kind: 'error', message: 'The password confirmation does not match.' });
+      return;
+    }
+
+    setCreatingUser(true);
+    setCreateUserError('');
+    setNotice(null);
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      let currentSession = sessionData.session;
+      const tokenExpiresSoon =
+        !currentSession?.expires_at ||
+        currentSession.expires_at * 1000 <= Date.now() + 60_000;
+
+      if (!currentSession || tokenExpiresSoon) {
+        const { data: refreshedData, error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError) throw refreshError;
+        currentSession = refreshedData.session;
+      }
+
+      if (!currentSession?.access_token) {
+        throw new Error('Your CRM session is missing. Please sign in again and retry.');
+      }
+
+      const requestBody = {
+        action: 'create',
+        full_name: fullName,
+        email,
+        password: draft.password,
+        account_iban: draft.account_iban.trim().toUpperCase(),
+        kyc_status: draft.kyc_status,
+        crm_role: draft.crm_role,
+        assigned_manager_id:
+          draft.crm_role === 'customer' || draft.crm_role === 'agent'
+            ? draft.assigned_manager_id || null
+            : null,
+        assigned_agent_id: draft.crm_role === 'customer' ? draft.assigned_agent_id || null : null,
+        email_confirm: draft.email_confirm,
+      };
+      const runCreateRequest = (accessToken: string) =>
+        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-user-management`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+      let response = await runCreateRequest(currentSession.access_token);
+
+      if (response.status === 401) {
+        const { data: retriedSession, error: retryError } = await supabase.auth.refreshSession();
+        if (retryError || !retriedSession.session?.access_token) {
+          throw new Error(retryError?.message || 'Your administrator session expired. Please sign in again.');
+        }
+        response = await runCreateRequest(retriedSession.session.access_token);
+      }
+
+      const rawResponse = await response.text();
+      let responseBody: CreateUserResponse = {};
+      if (rawResponse) {
+        try {
+          responseBody = JSON.parse(rawResponse) as CreateUserResponse;
+        } catch {
+          responseBody = {};
+        }
+      }
+
+      if (!response.ok) {
+        const rollbackWarning = responseBody.rollback_warning
+          ? ` Auth rollback warning: ${responseBody.rollback_warning}`
+          : '';
+        throw new Error(
+          `${responseBody.error || rawResponse || `User creation failed with status ${response.status}`}${rollbackWarning}`
+        );
+      }
+
+      if (!responseBody.profile?.id) {
+        throw new Error('The user was created, but the CRM function did not return the new profile. Refresh the directory to verify it.');
+      }
+
+      const nextProfile = {
+        ...responseBody.profile,
+        crm_role: normalizeCrmRole(
+          responseBody.profile.crm_role,
+          responseBody.profile.is_admin ? 'admin' : 'customer'
+        ),
+        assigned_manager_id: responseBody.profile.assigned_manager_id || null,
+        assigned_agent_id: responseBody.profile.assigned_agent_id || null,
+      } as ProfileRecord;
+
+      setProfiles((current) => [nextProfile, ...current.filter((profile) => profile.id !== nextProfile.id)]);
+      setCreateUserDialogOpen(false);
+      setCreateUserError('');
+      setSearch('');
+      setTableData({});
+      setTableErrors({});
+      setEditingRecordId(null);
+      setIsAddingRecord(false);
+      setSelectedUserId(nextProfile.id);
+      setNotice({
+        kind: 'success',
+        message: draft.email_confirm
+          ? `${nextProfile.full_name || nextProfile.email} was created successfully and can now sign in.`
+          : `${nextProfile.full_name || nextProfile.email} was created successfully and must confirm the email before signing in.`,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not create the user.';
+      setCreateUserError(message);
+      setNotice({
+        kind: 'error',
+        message,
+      });
+    } finally {
+      setCreatingUser(false);
+    }
+  }
+
   async function handleProfileSave(updates: ProfileSavePayload) {
     if (!selectedProfile) return;
 
@@ -5916,14 +6391,30 @@ export default function CrmAdmin() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => void loadProfiles()}
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-[#006446]/12 px-4 py-2 text-sm font-medium text-[#006446] transition-colors hover:bg-[#006446]/[0.05]"
-          >
-            <RefreshCw className={`h-4 w-4 ${loadingProfiles ? 'animate-spin' : ''}`} />
-            Refresh users
-          </button>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            {isViewerAdmin && (
+              <button
+                type="button"
+                onClick={() => {
+                  setNotice(null);
+                  setCreateUserError('');
+                  setCreateUserDialogOpen(true);
+                }}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#006446] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#004d36]"
+              >
+                <Plus className="h-4 w-4" />
+                Create new user
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => void loadProfiles()}
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-[#006446]/12 px-4 py-2 text-sm font-medium text-[#006446] transition-colors hover:bg-[#006446]/[0.05]"
+            >
+              <RefreshCw className={`h-4 w-4 ${loadingProfiles ? 'animate-spin' : ''}`} />
+              Refresh users
+            </button>
+          </div>
         </div>
 
         <div className="relative mt-5 max-w-2xl">
@@ -6073,6 +6564,19 @@ export default function CrmAdmin() {
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{notice.message}</span>
         </div>
+      )}
+
+      {createUserDialogOpen && isViewerAdmin && (
+        <CreateUserDialog
+          profiles={profiles}
+          creating={creatingUser}
+          error={createUserError}
+          onCancel={() => {
+            setCreateUserError('');
+            setCreateUserDialogOpen(false);
+          }}
+          onCreate={handleCreateUser}
+        />
       )}
 
       {deleteUserDialogOpen && selectedProfile && (

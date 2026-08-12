@@ -25,10 +25,14 @@ registerTranslations({
 
     'onlineBanking.actions.signIn': 'Sign In',
     'onlineBanking.actions.createAccount': 'Create Account',
+    'onlineBanking.actions.signingIn': 'Signing in',
+    'onlineBanking.actions.creatingAccount': 'Creating account',
     'onlineBanking.actions.showPassword': 'Show password',
     'onlineBanking.actions.hidePassword': 'Hide password',
 
     'onlineBanking.errors.fullNameRequired': 'Please enter your full name',
+    'onlineBanking.errors.emailRequired': 'Please enter your email address',
+    'onlineBanking.errors.passwordRequired': 'Please enter your password',
     'onlineBanking.errors.passwordMin':
       'Password must be at least 6 characters',
     'onlineBanking.errors.termsRequired':
@@ -273,11 +277,17 @@ registerTranslations({
 
     'onlineBanking.actions.signIn': 'Zaloguj się',
     'onlineBanking.actions.createAccount': 'Utwórz konto',
+    'onlineBanking.actions.signingIn': 'Logowanie',
+    'onlineBanking.actions.creatingAccount': 'Tworzenie konta',
     'onlineBanking.actions.showPassword': 'Pokaż hasło',
     'onlineBanking.actions.hidePassword': 'Ukryj hasło',
 
     'onlineBanking.errors.fullNameRequired':
       'Wprowadź imię i nazwisko.',
+    'onlineBanking.errors.emailRequired':
+      'Wprowadź adres e-mail.',
+    'onlineBanking.errors.passwordRequired':
+      'Wprowadź hasło.',
     'onlineBanking.errors.passwordMin':
       'Hasło musi zawierać co najmniej 6 znaków.',
     'onlineBanking.errors.termsRequired':
@@ -300,5 +310,65 @@ registerTranslations({
     'onlineBanking.secureLabel': 'BEZPIECZNA BANKOWOŚĆ INTERNETOWA',
     'onlineBanking.securityNotice':
       'Chronione 256-bitowym szyfrowaniem SSL. Twoje dane są u nas bezpieczne.',
+  },
+
+  lt: {
+    'onlineBanking.login.title': 'Sveiki sugrįžę',
+    'onlineBanking.login.subtitle':
+      'Prisijunkite, kad galėtumėte pasiekti savo sąskaitas ir tvarkyti finansus.',
+    'onlineBanking.login.tab': 'Prisijungti',
+
+    'onlineBanking.register.title': 'Atidarykite savo sąskaitą',
+    'onlineBanking.register.subtitle':
+      'Susikurkite internetinės bankininkystės profilį ir pradėkite.',
+    'onlineBanking.register.tab': 'Registruotis',
+    'onlineBanking.register.termsAgreementPrefix':
+      'Kurdami paskyrą sutinkate su „SKOK Bank“',
+    'onlineBanking.register.termsAgreementLink':
+      'taisyklėmis ir sąlygomis',
+
+    'onlineBanking.fields.fullName': 'Vardas ir pavardė',
+    'onlineBanking.fields.email': 'El. pašto adresas',
+    'onlineBanking.fields.password': 'Slaptažodis',
+
+    'onlineBanking.placeholders.fullName': 'Vardenis Pavardenis',
+    'onlineBanking.placeholders.email': 'jusu@pavyzdys.lt',
+    'onlineBanking.placeholders.password': 'Įveskite slaptažodį',
+
+    'onlineBanking.actions.signIn': 'Prisijungti',
+    'onlineBanking.actions.createAccount': 'Sukurti paskyrą',
+    'onlineBanking.actions.signingIn': 'Jungiamasi',
+    'onlineBanking.actions.creatingAccount': 'Kuriama paskyra',
+    'onlineBanking.actions.showPassword': 'Rodyti slaptažodį',
+    'onlineBanking.actions.hidePassword': 'Slėpti slaptažodį',
+
+    'onlineBanking.errors.fullNameRequired':
+      'Įveskite vardą ir pavardę.',
+    'onlineBanking.errors.emailRequired':
+      'Įveskite el. pašto adresą.',
+    'onlineBanking.errors.passwordRequired':
+      'Įveskite slaptažodį.',
+    'onlineBanking.errors.passwordMin':
+      'Slaptažodį turi sudaryti bent 6 simboliai.',
+    'onlineBanking.errors.termsRequired':
+      'Turite sutikti su „SKOK Bank“ taisyklėmis ir sąlygomis.',
+    'onlineBanking.errors.invalidCredentials':
+      'El. pašto adresas arba slaptažodis yra neteisingas.',
+    'onlineBanking.errors.emailNotConfirmed':
+      'Prieš prisijungdami patvirtinkite savo el. pašto adresą.',
+    'onlineBanking.errors.alreadyRegistered':
+      'Paskyra su šiuo el. pašto adresu jau yra.',
+    'onlineBanking.errors.invalidEmail':
+      'Įveskite galiojantį el. pašto adresą.',
+    'onlineBanking.errors.rateLimited':
+      'Bandėte per daug kartų. Šiek tiek palaukite ir bandykite dar kartą.',
+    'onlineBanking.errors.loginFailed':
+      'Prisijungti nepavyko. Bandykite dar kartą.',
+    'onlineBanking.errors.registerFailed':
+      'Paskyros sukurti nepavyko. Bandykite dar kartą.',
+
+    'onlineBanking.secureLabel': 'SAUGI INTERNETINĖ BANKININKYSTĖ',
+    'onlineBanking.securityNotice':
+      'Apsaugota 256 bitų SSL šifravimu. Jūsų duomenys yra saugūs.',
   },
 });

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Calculator, DollarSign, Percent, Calendar } from 'lucide-react';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { useLanguage, type Language } from '../../contexts/LanguageContext';
 
 const loanTypeConfigs = [
   { id: 'home', defaultRate: 5.99, maxAmount: 1000000, maxTerm: 360 },
@@ -9,8 +9,12 @@ const loanTypeConfigs = [
   { id: 'student', defaultRate: 3.99, maxAmount: 200000, maxTerm: 240 },
 ];
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat('en-US', {
+const LOCALE_MAP: Record<Language, string> = {
+  en: 'en-US', fr: 'fr-FR', de: 'de-DE', es: 'es-ES', it: 'it-IT', el: 'el-GR', pl: 'pl-PL', lt: 'lt-LT',
+};
+
+function formatCurrency(value: number, locale: string) {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 0,
@@ -19,7 +23,12 @@ function formatCurrency(value: number) {
 }
 
 export default function LoanCalculator() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const locale = LOCALE_MAP[language];
+  const formatNumber = (value: number, digits: number) => new Intl.NumberFormat(locale, {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(value);
   const [activeLoanType, setActiveLoanType] = useState('home');
   const [amount, setAmount] = useState(300000);
   const [rate, setRate] = useState(5.99);
@@ -109,7 +118,7 @@ export default function LoanCalculator() {
                     <DollarSign className="h-4 w-4 text-[#006446]" />
                     {t('loans.calc.amount')}
                   </label>
-                  <span className="text-black font-bold text-lg">{formatCurrency(amount)}</span>
+                  <span className="text-black font-bold text-lg">{formatCurrency(amount, locale)}</span>
                 </div>
                 <input
                   type="range"
@@ -121,8 +130,8 @@ export default function LoanCalculator() {
                   className="w-full h-2 bg-[#006446]/30 rounded-lg appearance-none cursor-pointer accent-[#006446]"
                 />
                 <div className="flex justify-between text-xs text-[#006446]/50 mt-1">
-                  <span>$5,000</span>
-                  <span>{formatCurrency(currentType.maxAmount)}</span>
+                  <span>{formatCurrency(5000, locale)}</span>
+                  <span>{formatCurrency(currentType.maxAmount, locale)}</span>
                 </div>
               </div>
 
@@ -132,7 +141,7 @@ export default function LoanCalculator() {
                     <Percent className="h-4 w-4 text-[#006446]" />
                     {t('loans.calc.rate')}
                   </label>
-                  <span className="text-black font-bold text-lg">{rate.toFixed(2)}%</span>
+                  <span className="text-black font-bold text-lg">{formatNumber(rate, 2)}%</span>
                 </div>
                 <input
                   type="range"
@@ -144,8 +153,8 @@ export default function LoanCalculator() {
                   className="w-full h-2 bg-[#006446]/30 rounded-lg appearance-none cursor-pointer accent-[#006446]"
                 />
                 <div className="flex justify-between text-xs text-[#006446]/50 mt-1">
-                  <span>1.00%</span>
-                  <span>20.00%</span>
+                  <span>{formatNumber(1, 2)}%</span>
+                  <span>{formatNumber(20, 2)}%</span>
                 </div>
               </div>
 
@@ -181,7 +190,7 @@ export default function LoanCalculator() {
                 {t('loans.calc.monthly')}
               </p>
               <p className="mb-1 text-5xl font-bold text-[#006446]">
-                {formatCurrency(Math.round(monthlyPayment))}
+                {formatCurrency(Math.round(monthlyPayment), locale)}
               </p>
               <p className="text-sm text-surface-600">{t('loans.calc.perMonth')}</p>
             </div>
@@ -190,19 +199,19 @@ export default function LoanCalculator() {
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between items-center">
                   <span className="text-black text-sm">{t('loans.calc.principal')}</span>
-                  <span className="text-black font-semibold">{formatCurrency(amount)}</span>
+                  <span className="text-black font-semibold">{formatCurrency(amount, locale)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-black text-sm">{t('loans.calc.interest')}</span>
                   <span className="text-black font-semibold">
-                    {formatCurrency(Math.round(totalInterest))}
+                    {formatCurrency(Math.round(totalInterest), locale)}
                   </span>
                 </div>
                 <div className="h-px bg-[#006446]/15" />
                 <div className="flex justify-between items-center">
                   <span className="text-black font-semibold">{t('loans.calc.totalCost')}</span>
                   <span className="text-black font-bold text-lg">
-                    {formatCurrency(Math.round(totalPayment))}
+                    {formatCurrency(Math.round(totalPayment), locale)}
                   </span>
                 </div>
               </div>
@@ -215,10 +224,10 @@ export default function LoanCalculator() {
               </div>
               <div className="flex justify-between text-xs mt-2">
                 <span className="text-black">
-                  {t('loans.calc.principalLabel')} ({principalPercent.toFixed(0)}%)
+                  {t('loans.calc.principalLabel')} ({formatNumber(principalPercent, 0)}%)
                 </span>
                 <span className="text-black">
-                  {t('loans.calc.interestLabel')} ({(100 - principalPercent).toFixed(0)}%)
+                  {t('loans.calc.interestLabel')} ({formatNumber(100 - principalPercent, 0)}%)
                 </span>
               </div>
             </div>

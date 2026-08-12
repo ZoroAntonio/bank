@@ -6,9 +6,10 @@ import { es } from './es';
 import { it } from './it';
 import { el } from './el';
 import { pl } from './pl';
+import { lt } from './lt';
 
 const homeTranslations: Record<Language, Record<string, string>> = {
-  en, fr, de, es, it, el, pl,
+  en, fr, de, es, it, el, pl, lt,
 };
 
 registerTranslations(homeTranslations);

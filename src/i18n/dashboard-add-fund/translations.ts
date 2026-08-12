@@ -1,6 +1,10 @@
 import { registerTranslations } from '../../contexts/LanguageContext';
+import { lt } from './lt';
+import { pl } from './pl';
 
 registerTranslations({
+  lt,
+  pl,
   en: {
     'dashboardAddFund.title': 'Add Fund',
     'dashboardAddFund.subtitle': 'Deposit crypto assets into your account',
@@ -14,12 +18,15 @@ registerTranslations({
     'dashboardAddFund.messages.depositOf': 'Deposit of',
     'dashboardAddFund.messages.submitted': 'submitted -- awaiting confirmation',
     'dashboardAddFund.messages.addressCopied': 'Address copied to clipboard',
+    'dashboardAddFund.messages.notAuthenticated': 'You must be signed in to submit a deposit.',
+    'dashboardAddFund.messages.submissionError': 'The deposit request could not be submitted. Please try again.',
 
     'dashboardAddFund.form.title': 'Deposit Crypto',
     'dashboardAddFund.form.selectAsset': 'Select Asset',
     'dashboardAddFund.form.balanceShort': 'Bal',
     'dashboardAddFund.form.scanToGetAddress': 'Scan to get address',
     'dashboardAddFund.form.walletAddress': 'Wallet Address',
+    'dashboardAddFund.form.deposit': 'Deposit',
     'dashboardAddFund.form.amount': 'Amount',
     'dashboardAddFund.form.warning1': 'Send only',
     'dashboardAddFund.form.warning2': 'to this address on the',

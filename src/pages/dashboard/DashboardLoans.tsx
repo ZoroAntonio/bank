@@ -13,8 +13,12 @@ import Dropdown from '../../components/ui/Dropdown';
 import { useLanguage } from '../../contexts/LanguageContext';
 import '../../i18n/dashboard-loans/translations';
 
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+const LOCALE_MAP: Record<string, string> = {
+  en: 'en-US', fr: 'fr-FR', de: 'de-DE', es: 'es-ES', it: 'it-IT', el: 'el-GR', pl: 'pl-PL', lt: 'lt-LT',
+};
+
+function formatCurrencyValue(amount: number, locale: string) {
+  return new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD' }).format(amount);
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -26,6 +30,13 @@ const STATUS_STYLES: Record<string, string> = {
 
 export default function DashboardLoans() {
   const { t, language } = useLanguage();
+  const formatCurrency = (value: number) =>
+    formatCurrencyValue(value, LOCALE_MAP[language] || 'en-US');
+  const formatNumber = (value: number, digits: number) =>
+    new Intl.NumberFormat(LOCALE_MAP[language] || 'en-US', {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    }).format(value);
   const { loans, loading, applyForLoan, makePayment } = useLoans();
 
   const [showApply, setShowApply] = useState(false);
@@ -46,14 +57,14 @@ export default function DashboardLoans() {
       .filter((m) => m <= (selectedLoanType?.maxTerm || 60))
       .map((m) => ({
         value: String(m),
-        label: `${m} ${t('dashboardLoans.application.months')} (${(m / 12).toFixed(1)} ${t('dashboardLoans.application.yearsShort')})`,
+        label: `${m} ${t('dashboardLoans.application.months')} (${formatNumber(m / 12, 1)} ${t('dashboardLoans.application.yearsShort')})`,
       })),
     ...((selectedLoanType?.maxTerm || 0) > 60
       ? [84, 120, 180, 240, 360]
           .filter((m) => m <= (selectedLoanType?.maxTerm || 0))
           .map((m) => ({
             value: String(m),
-            label: `${m} ${t('dashboardLoans.application.months')} (${(m / 12).toFixed(0)} ${t('dashboardLoans.application.yearsShort')})`,
+            label: `${m} ${t('dashboardLoans.application.months')} (${formatNumber(m / 12, 0)} ${t('dashboardLoans.application.yearsShort')})`,
           }))
       : []),
   ];
@@ -70,6 +81,8 @@ export default function DashboardLoans() {
       es: 'es-ES',
       it: 'it-IT',
       el: 'el-GR',
+      pl: 'pl-PL',
+      lt: 'lt-LT',
     };
 
     return new Date(dateStr).toLocaleDateString(localeMap[language] || 'en-US', {
@@ -126,7 +139,12 @@ export default function DashboardLoans() {
     });
 
     if (res?.error) {
-      setResult({ success: false, message: res.error });
+      setResult({
+        success: false,
+        message: t(res.error === 'Not authenticated'
+          ? 'dashboardLoans.messages.notAuthenticated'
+          : 'dashboardLoans.messages.requestError'),
+      });
     } else {
       setResult({ success: true, message: t('dashboardLoans.messages.applicationSubmitted') });
       setPrincipal('');
@@ -141,7 +159,12 @@ export default function DashboardLoans() {
     const res = await makePayment(loanId);
 
     if (res?.error) {
-      setResult({ success: false, message: res.error });
+      const key = res.error === 'Not authenticated'
+        ? 'dashboardLoans.messages.notAuthenticated'
+        : res.error === 'Loan not found'
+          ? 'dashboardLoans.messages.loanNotFound'
+          : 'dashboardLoans.messages.requestError';
+      setResult({ success: false, message: t(key) });
     } else {
       setResult({ success: true, message: t('dashboardLoans.messages.paymentSuccess') });
     }
@@ -278,7 +301,7 @@ export default function DashboardLoans() {
               <div className="grid gap-4 rounded-2xl border border-[#006446]/14 bg-[#006446]/[0.04] p-4 text-sm sm:grid-cols-4">
                 <div>
                   <p className="mb-0.5 text-xs text-[#006446]/70">{t('dashboardLoans.calculator.interestRate')}</p>
-                  <p className="font-bold text-slate-900">{interestRate.toFixed(1)}% {t('dashboardLoans.calculator.perYear')}</p>
+                  <p className="font-bold text-slate-900">{formatNumber(interestRate, 1)}% {t('dashboardLoans.calculator.perYear')}</p>
                 </div>
                 <div>
                   <p className="mb-0.5 text-xs text-[#006446]/70">{t('dashboardLoans.calculator.monthlyPayment')}</p>
@@ -363,7 +386,7 @@ export default function DashboardLoans() {
                             />
                           </div>
                         </div>
-                        <span className="flex-shrink-0 text-xs text-[#006446]/70">{paid.toFixed(0)}% {t('dashboardLoans.loanCard.paid')}</span>
+                        <span className="flex-shrink-0 text-xs text-[#006446]/70">{formatNumber(paid, 0)}% {t('dashboardLoans.loanCard.paid')}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 text-xs text-[#006446]/70">

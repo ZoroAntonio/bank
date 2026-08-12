@@ -49,10 +49,14 @@ const CRYPTO_BORDER: Record<string, string> = {
   USDT: 'border-[#006446]',
 };
 
-function formatCrypto(amount: number, symbol: string) {
+const LOCALE_MAP: Record<string, string> = {
+  en: 'en-US', fr: 'fr-FR', de: 'de-DE', es: 'es-ES', it: 'it-IT', el: 'el-GR', pl: 'pl-PL', lt: 'lt-LT',
+};
+
+function formatCryptoValue(amount: number, symbol: string, locale: string) {
   if (amount === 0) return `0 ${symbol}`;
   const decimals = ['USDC', 'USDT'].includes(symbol) ? 2 : 8;
-  return `${amount.toLocaleString('en-US', {
+  return `${amount.toLocaleString(locale, {
     minimumFractionDigits: 2,
     maximumFractionDigits: decimals,
   })} ${symbol}`;
@@ -74,6 +78,8 @@ const STATUS_STYLES: Record<string, string> = {
 
 export default function DashboardFixedDeposits() {
   const { t, language } = useLanguage();
+  const formatCrypto = (value: number, symbol: string) =>
+    formatCryptoValue(value, symbol, LOCALE_MAP[language] || 'en-US');
   const { deposits, loading, addFund } = useAddFund();
   const { cryptoBalances, refetch: refetchBalances } = useCryptoBalances();
   const { wallets, loading: walletsLoading } = useCryptoWallets();
@@ -110,6 +116,8 @@ export default function DashboardFixedDeposits() {
       es: 'es-ES',
       it: 'it-IT',
       el: 'el-GR',
+      pl: 'pl-PL',
+      lt: 'lt-LT',
     };
 
     return new Date(dateStr).toLocaleDateString(localeMap[language] || 'en-US', {
@@ -142,7 +150,12 @@ export default function DashboardFixedDeposits() {
     });
 
     if (res.error) {
-      setResult({ success: false, message: res.error });
+      setResult({
+        success: false,
+        message: t(res.error === 'Not authenticated'
+          ? 'dashboardAddFund.messages.notAuthenticated'
+          : 'dashboardAddFund.messages.submissionError'),
+      });
     } else {
       setResult({
         success: true,
@@ -337,7 +350,9 @@ export default function DashboardFixedDeposits() {
                       )}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">{wallet.name} Deposit</p>
+                      <p className="text-sm font-semibold text-slate-900">
+                        {t('dashboardAddFund.form.deposit')} — {wallet.name}
+                      </p>
                       <p className="text-xs text-[#006446]/70">{wallet.network}</p>
                     </div>
                   </div>

@@ -1,5 +1,5 @@
 import { Check, Star } from 'lucide-react';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { useLanguage, type Language } from '../../contexts/LanguageContext';
 
 interface PricingTier {
   nameKey: string;
@@ -50,8 +50,18 @@ const tiers: PricingTier[] = [
   },
 ];
 
+const LOCALE_MAP: Record<Language, string> = {
+  en: 'en-IE', fr: 'fr-FR', de: 'de-DE', es: 'es-ES', it: 'it-IT', el: 'el-GR', pl: 'pl-PL', lt: 'lt-LT',
+};
+
 export default function BusinessPricing() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const formatPrice = (price: string) => new Intl.NumberFormat(LOCALE_MAP[language], {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(Number(price));
 
   return (
     <section className="relative py-28 bg-white overflow-hidden">
@@ -103,7 +113,7 @@ export default function BusinessPricing() {
                   <span className={`text-5xl lg:text-6xl font-bold tracking-tight ${
                     tier.featured ? 'text-white' : 'text-surface-900'
                   }`}>
-                    &euro;{tier.price}
+                    {formatPrice(tier.price)}
                   </span>
                 </div>
                 <p className={`text-sm mb-8 ${tier.featured ? 'text-surface-400' : 'text-surface-500'}`}>

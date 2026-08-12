@@ -1,6 +1,10 @@
 import { registerTranslations } from '../../contexts/LanguageContext';
+import { lt } from './lt';
+import { pl } from './pl';
 
 registerTranslations({
+  lt,
+  pl,
   en: {
     'dashboardCurrencyExchange.title': 'Currency Exchange',
     'dashboardCurrencyExchange.subtitle': 'Exchange fiat and crypto at live market rates',
@@ -19,6 +23,9 @@ registerTranslations({
     'dashboardCurrencyExchange.placeholders.selectCurrency': 'Select currency',
     'dashboardCurrencyExchange.placeholders.selectToken': 'Select token',
     'dashboardCurrencyExchange.placeholders.amount': '0.00',
+    'dashboardCurrencyExchange.placeholders.searchCurrencies': 'Search currencies...',
+    'dashboardCurrencyExchange.placeholders.searchTokens': 'Search tokens...',
+    'dashboardCurrencyExchange.placeholders.noOptions': 'No options found',
 
     'dashboardCurrencyExchange.balance': 'Balance',
     'dashboardCurrencyExchange.insufficient': 'Insufficient',
@@ -32,6 +39,15 @@ registerTranslations({
     'dashboardCurrencyExchange.messages.exchanged': 'Exchanged',
     'dashboardCurrencyExchange.messages.swapped': 'Swapped',
     'dashboardCurrencyExchange.messages.to': 'to',
+    'dashboardCurrencyExchange.messages.genericError': 'The exchange could not be completed. Please try again.',
+    'dashboardCurrencyExchange.messages.quoteError': 'Unable to load a current market quote. Please try again.',
+    'dashboardCurrencyExchange.messages.rateUnavailable': 'A live rate is not available for this pair.',
+    'dashboardCurrencyExchange.messages.quotesUnavailable': 'Live quotes are unavailable for {assets}. Those balances remain visible in the account but are excluded from exchange controls.',
+    'dashboardCurrencyExchange.messages.needTwoCrypto': 'You need at least two available crypto balances to swap assets.',
+    'dashboardCurrencyExchange.messages.restrictedTitle': 'Pending and frozen balances',
+    'dashboardCurrencyExchange.messages.restrictedDescription': 'Visible for reference and excluded from actions until marked available.',
+    'dashboardCurrencyExchange.messages.selectCustomer': 'Select a customer first to control fiat and crypto exchanges.',
+    'dashboardCurrencyExchange.messages.ratesError': 'Live market data could not be loaded. Refresh to try again.',
 
     'dashboardCurrencyExchange.fiat.title': 'Fiat Exchange',
     'dashboardCurrencyExchange.fiat.liveRatesSource': 'Live rates via Frankfurter API',

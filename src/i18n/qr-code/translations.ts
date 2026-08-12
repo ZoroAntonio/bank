@@ -1,0 +1,42 @@
+import { registerTranslations } from '../../contexts/LanguageContext';
+import { lt } from './lt';
+
+registerTranslations({
+  lt,
+  en: {
+    'qrCode.unavailable': 'QR code unavailable',
+    'qrCode.paymentUnavailable': 'QR unavailable',
+    'qrCode.scannablePayment': 'Scannable payment QR code',
+    'qrCode.noWalletAddress': 'No wallet address is configured.',
+    'qrCode.invalidWalletAddress': 'This is not a valid {network} wallet address.',
+    'qrCode.invalidPaymentUri': 'The custom payment URI must be a valid URI containing this wallet address.',
+    'qrCode.format.walletAddress': 'Wallet address',
+    'qrCode.format.tokenNetwork': 'Wallet address (token network)',
+    'qrCode.format.customUri': 'Custom wallet payment URI',
+    'qrCode.format.bitcoinUri': 'Bitcoin payment URI',
+    'qrCode.format.eip681Uri': 'EIP-681 payment URI',
+    'qrCode.format.eip681ChainUri': 'EIP-681 payment URI (chain {chain})',
+    'qrCode.format.solanaUri': 'Solana Pay transfer URI',
+    'qrCode.format.dogecoinUri': 'Dogecoin payment URI',
+    'qrCode.format.litecoinUri': 'Litecoin payment URI',
+    'qrCode.format.bitcoinCashUri': 'Bitcoin Cash payment URI',
+  },
+  pl: {
+    'qrCode.unavailable': 'Kod QR jest niedostępny',
+    'qrCode.paymentUnavailable': 'Kod QR płatności jest niedostępny',
+    'qrCode.scannablePayment': 'Kod QR płatności do zeskanowania',
+    'qrCode.noWalletAddress': 'Nie skonfigurowano adresu portfela.',
+    'qrCode.invalidWalletAddress': 'Ten adres portfela jest nieprawidłowy dla sieci {network}.',
+    'qrCode.invalidPaymentUri': 'Niestandardowy identyfikator URI płatności musi być prawidłowy i zawierać ten adres portfela.',
+    'qrCode.format.walletAddress': 'Adres portfela',
+    'qrCode.format.tokenNetwork': 'Adres portfela (sieć tokena)',
+    'qrCode.format.customUri': 'Niestandardowy identyfikator URI płatności portfela',
+    'qrCode.format.bitcoinUri': 'Identyfikator URI płatności Bitcoin',
+    'qrCode.format.eip681Uri': 'Identyfikator URI płatności EIP-681',
+    'qrCode.format.eip681ChainUri': 'Identyfikator URI płatności EIP-681 (łańcuch {chain})',
+    'qrCode.format.solanaUri': 'Identyfikator URI przelewu Solana Pay',
+    'qrCode.format.dogecoinUri': 'Identyfikator URI płatności Dogecoin',
+    'qrCode.format.litecoinUri': 'Identyfikator URI płatności Litecoin',
+    'qrCode.format.bitcoinCashUri': 'Identyfikator URI płatności Bitcoin Cash',
+  },
+});

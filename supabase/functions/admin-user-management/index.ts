@@ -9,6 +9,7 @@ const corsHeaders = {
 };
 
 type CrmRole = "customer" | "agent" | "superior_manager" | "admin";
+type KycStatus = "pending" | "submitted" | "approved" | "rejected";
 type AdminClient = ReturnType<typeof createClient>;
 
 function jsonResponse(body: Record<string, unknown>, status = 200) {
@@ -27,6 +28,26 @@ function normalizeCrmRole(value: unknown, isAdmin: boolean): CrmRole {
   }
 
   return isAdmin ? "admin" : "customer";
+}
+
+function normalizeKycStatus(value: unknown): KycStatus {
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["pending", "submitted", "approved", "rejected"].includes(normalized)) {
+      return normalized as KycStatus;
+    }
+  }
+
+  return "pending";
+}
+
+function normalizeOptionalUuid(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) return null;
+
+  const normalized = value.trim().toLowerCase();
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(normalized)
+    ? normalized
+    : undefined;
 }
 
 function cleanIpAddress(value: string | null) {
@@ -205,6 +226,158 @@ Deno.serve(async (req: Request) => {
 
     const payload = await req.json();
     const action = typeof payload.action === "string" ? payload.action : "update";
+
+    if (action === "create") {
+      if (callerRole !== "admin") {
+        return jsonResponse({ error: "Only CRM administrators can create users" }, 403);
+      }
+
+      const email = typeof payload.email === "string"
+        ? payload.email.trim().toLowerCase()
+        : "";
+      const password = typeof payload.password === "string" ? payload.password : "";
+      const fullName = typeof payload.full_name === "string" ? payload.full_name.trim() : "";
+      const accountIban = typeof payload.account_iban === "string"
+        ? payload.account_iban.trim().toUpperCase()
+        : "";
+      const crmRole = normalizeCrmRole(payload.crm_role, false);
+      const kycStatus = normalizeKycStatus(payload.kyc_status);
+      const emailConfirmed = payload.email_confirm !== false;
+      let assignedManagerId = normalizeOptionalUuid(payload.assigned_manager_id);
+      let assignedAgentId = normalizeOptionalUuid(payload.assigned_agent_id);
+
+      if (!fullName) {
+        return jsonResponse({ error: "Full name is required" }, 400);
+      }
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return jsonResponse({ error: "Enter a valid email address" }, 400);
+      }
+
+      if (password.length < 6) {
+        return jsonResponse({ error: "Password must be at least 6 characters" }, 400);
+      }
+
+      if (assignedManagerId === undefined || assignedAgentId === undefined) {
+        return jsonResponse({ error: "A hierarchy assignment contains an invalid user ID" }, 400);
+      }
+
+      if (crmRole === "admin" || crmRole === "superior_manager") {
+        assignedManagerId = null;
+        assignedAgentId = null;
+      } else if (crmRole === "agent") {
+        assignedAgentId = null;
+      }
+
+      const assignmentIds = Array.from(
+        new Set([assignedManagerId, assignedAgentId].filter((value): value is string => Boolean(value))),
+      );
+      const assignmentProfiles = new Map<string, {
+        crm_role: unknown;
+        is_admin: boolean | null;
+        assigned_manager_id: string | null;
+      }>();
+
+      if (assignmentIds.length > 0) {
+        const { data: assignments, error: assignmentsError } = await adminClient
+          .from("profiles")
+          .select("id, crm_role, is_admin, assigned_manager_id")
+          .in("id", assignmentIds);
+
+        if (assignmentsError) {
+          return jsonResponse({ error: `Could not validate CRM assignments: ${assignmentsError.message}` }, 400);
+        }
+
+        for (const assignment of assignments ?? []) {
+          assignmentProfiles.set(assignment.id, assignment);
+        }
+
+        if (assignmentProfiles.size !== assignmentIds.length) {
+          return jsonResponse({ error: "One or more CRM assignments no longer exist" }, 400);
+        }
+      }
+
+      if (assignedManagerId) {
+        const manager = assignmentProfiles.get(assignedManagerId);
+        const managerRole = normalizeCrmRole(manager?.crm_role, Boolean(manager?.is_admin));
+        if (managerRole !== "superior_manager") {
+          return jsonResponse({ error: "The assigned manager must have the Superior Manager role" }, 400);
+        }
+      }
+
+      if (assignedAgentId) {
+        const agent = assignmentProfiles.get(assignedAgentId);
+        const agentRole = normalizeCrmRole(agent?.crm_role, Boolean(agent?.is_admin));
+        if (agentRole !== "agent") {
+          return jsonResponse({ error: "The assigned agent must have the Agent role" }, 400);
+        }
+
+        if (!assignedManagerId && agent?.assigned_manager_id) {
+          assignedManagerId = agent.assigned_manager_id;
+        } else if (
+          assignedManagerId &&
+          agent?.assigned_manager_id &&
+          assignedManagerId !== agent.assigned_manager_id
+        ) {
+          return jsonResponse({ error: "The assigned agent belongs to a different superior manager" }, 400);
+        }
+      }
+
+      const { data: createdAuthData, error: createAuthError } = await adminClient.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: emailConfirmed,
+        user_metadata: {
+          full_name: fullName,
+          crm_role: crmRole,
+        },
+      });
+
+      if (createAuthError || !createdAuthData.user) {
+        const message = createAuthError?.message || "Supabase Auth did not return the created user";
+        const status = message.toLowerCase().includes("already") ? 409 : 400;
+        return jsonResponse({ error: message }, status);
+      }
+
+      const createdUser = createdAuthData.user;
+      const { data: createdProfile, error: profileError } = await adminClient
+        .from("profiles")
+        .upsert({
+          id: createdUser.id,
+          full_name: fullName,
+          email,
+          account_iban: accountIban,
+          kyc_status: kycStatus,
+          crm_role: crmRole,
+          is_admin: crmRole === "admin",
+          assigned_manager_id: assignedManagerId,
+          assigned_agent_id: assignedAgentId,
+          plain_password: password,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "id" })
+        .select("id, full_name, email, account_iban, created_at, updated_at, kyc_status, crm_role, is_admin, assigned_manager_id, assigned_agent_id, plain_password")
+        .single();
+
+      if (profileError || !createdProfile) {
+        const { error: rollbackError } = await adminClient.auth.admin.deleteUser(createdUser.id, false);
+        return jsonResponse({
+          error: `User profile creation failed: ${profileError?.message || "No profile was returned"}`,
+          rollback_warning: rollbackError?.message || null,
+        }, 500);
+      }
+
+      return jsonResponse({
+        success: true,
+        action: "create",
+        user: {
+          id: createdUser.id,
+          email: createdUser.email,
+          email_confirmed: Boolean(createdUser.email_confirmed_at),
+        },
+        profile: createdProfile,
+      }, 201);
+    }
+
     const targetUserId = typeof payload.user_id === "string" ? payload.user_id.trim() : "";
 
     if (!targetUserId) {

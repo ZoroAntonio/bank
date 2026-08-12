@@ -1,6 +1,10 @@
 import { registerTranslations } from '../../contexts/LanguageContext';
+import { lt } from './lt';
+import { pl } from './pl';
 
 registerTranslations({
+  lt,
+  pl,
   en: {
     'internalCryptoTransfer.title': 'Internal Crypto Transfer',
     'internalCryptoTransfer.subtitle': 'Convert between your crypto balances',
@@ -25,6 +29,7 @@ registerTranslations({
     'internalCryptoTransfer.errors.sameCoin': 'Source and destination must be different coins',
     'internalCryptoTransfer.errors.insufficient': 'Insufficient',
     'internalCryptoTransfer.errors.balance': 'balance',
+    'internalCryptoTransfer.restrictedBalances': 'Pending and frozen balances remain visible for reference but cannot be used for crypto transfers.',
   },
 
   fr: {

@@ -216,17 +216,23 @@ export default function DashboardAnalytics() {
 
           <div>
             <p className="text-3xl font-bold text-[#006446]">{completedCount}</p>
-            <p className="mt-1 text-xs text-[#006446]/70">Completed</p>
+            <p className="mt-1 text-xs text-[#006446]/70">
+              {t('dashboardAnalytics.transactionSummary.completed')}
+            </p>
           </div>
 
           <div>
             <p className="text-3xl font-bold text-[#006446]">{pendingCount}</p>
-            <p className="mt-1 text-xs text-[#006446]/70">Pending</p>
+            <p className="mt-1 text-xs text-[#006446]/70">
+              {t('dashboardAnalytics.transactionSummary.pending')}
+            </p>
           </div>
 
           <div>
             <p className="text-3xl font-bold text-slate-900">{uniquePoiCount}</p>
-            <p className="mt-1 text-xs text-[#006446]/70">Unique POIs</p>
+            <p className="mt-1 text-xs text-[#006446]/70">
+              {t('dashboardAnalytics.transactionSummary.uniquePois')}
+            </p>
           </div>
         </div>
       </div>

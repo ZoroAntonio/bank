@@ -1,6 +1,10 @@
 import { registerTranslations } from '../../contexts/LanguageContext';
+import { lt } from './lt';
+import { pl } from './pl';
 
 registerTranslations({
+  lt,
+  pl,
   en: {
     'dashboardBillPay.title': 'Bill Payments',
     'dashboardBillPay.subtitle': 'Submit payment requests for review and approval',
@@ -26,6 +30,7 @@ registerTranslations({
     'dashboardBillPay.pending.youHave': 'You have',
     'dashboardBillPay.pending.payment': 'pending payment',
     'dashboardBillPay.pending.payments': 'pending payments',
+    'dashboardBillPay.pending.paymentsMany': 'pending payments',
     'dashboardBillPay.pending.awaitingApproval': 'awaiting approval.',
 
     'dashboardBillPay.messages.paymentOf': 'Your payment of',
@@ -46,6 +51,26 @@ registerTranslations({
     'dashboardBillPay.history.emptySubtitle': 'Submit your first payment request above',
     'dashboardBillPay.history.cryptoPayment': 'Crypto Payment',
     'dashboardBillPay.history.bankPayment': 'Bank Payment',
+
+    'dashboardBillPay.bank.bankName': 'Bank Name',
+    'dashboardBillPay.bank.accountNumber': 'Account Number',
+    'dashboardBillPay.bank.iban': 'IBAN',
+    'dashboardBillPay.bank.swiftBic': 'SWIFT / BIC Code',
+    'dashboardBillPay.bank.ibanPlaceholder': 'e.g., CH93 0076 2011 6238 5295 7',
+
+    'dashboardBillPay.crypto.noWallets': 'No crypto wallets found. Please contact support.',
+    'dashboardBillPay.crypto.select': 'Select Cryptocurrency',
+    'dashboardBillPay.crypto.chooseWallet': 'Choose a wallet...',
+    'dashboardBillPay.crypto.walletAddress': 'Wallet Address',
+    'dashboardBillPay.crypto.copied': 'Copied',
+    'dashboardBillPay.crypto.copyAddress': 'Copy Address',
+    'dashboardBillPay.crypto.network': 'Network:',
+    'dashboardBillPay.crypto.sendOnly': 'Send only',
+    'dashboardBillPay.crypto.toAddress': 'to this address.',
+    'dashboardBillPay.crypto.assetWarning': 'Sending other assets may result in permanent loss.',
+
+    'dashboardBillPay.messages.notAuthenticated': 'You must be signed in to submit a payment request.',
+    'dashboardBillPay.messages.submissionError': 'The payment request could not be submitted. Please try again.',
   },
 
   fr: {

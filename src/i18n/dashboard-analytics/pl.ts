@@ -1,0 +1,15 @@
+export const pl = {
+  'dashboardAnalytics.title': 'Analizy',
+  'dashboardAnalytics.subtitle': 'Pełny obraz Twoich finansów',
+  'dashboardAnalytics.periods.all': 'Cały okres',
+  'dashboardAnalytics.periods.90days': '90 dni',
+  'dashboardAnalytics.periods.30days': '30 dni',
+  'dashboardAnalytics.transactionSummary.title': 'Podsumowanie transakcji',
+  'dashboardAnalytics.transactionSummary.totalTransactions': 'Wszystkie transakcje',
+  'dashboardAnalytics.transactionSummary.credits': 'Uznania',
+  'dashboardAnalytics.transactionSummary.debits': 'Obciążenia',
+  'dashboardAnalytics.transactionSummary.avgExpense': 'Średni wydatek',
+  'dashboardAnalytics.transactionSummary.completed': 'Zrealizowane',
+  'dashboardAnalytics.transactionSummary.pending': 'Oczekujące',
+  'dashboardAnalytics.transactionSummary.uniquePois': 'Unikalne punkty płatności',
+};

@@ -1,6 +1,10 @@
 import { registerTranslations } from '../../contexts/LanguageContext';
+import { lt } from './lt';
+import { pl } from './pl';
 
 registerTranslations({
+  lt,
+  pl,
   en: {
     'dashboardCards.title': 'Cards',
     'dashboardCards.subtitle': 'Manage your debit cards',
@@ -83,6 +87,10 @@ registerTranslations({
     'dashboardCards.messages.noApprovedCardsTitle': 'No approved cards yet',
     'dashboardCards.messages.noApprovedCardsDescription':
       'Your card application is still under review. The card will appear here once it has been approved by the bank.',
+    'dashboardCards.messages.applicationError':
+      'We could not submit your card application. Please try again.',
+    'dashboardCards.messages.updateError':
+      'We could not update the card. Please try again.',
 
     'dashboardCards.employment.employed': 'Employed',
     'dashboardCards.employment.selfEmployed': 'Self-Employed',
@@ -102,6 +110,7 @@ registerTranslations({
     'dashboardCards.currencies.CHF': 'CHF - Swiss Franc',
 
     'dashboardCards.countries.US': 'United States',
+    'dashboardCards.countries.LT': 'Lithuania',
     'dashboardCards.countries.CA': 'Canada',
     'dashboardCards.countries.FR': 'France',
     'dashboardCards.countries.DE': 'Germany',

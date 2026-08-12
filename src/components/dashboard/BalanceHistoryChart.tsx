@@ -28,6 +28,7 @@ const CURRENCY_LOCALE_MAP: Record<Language, string> = {
   it: 'it-IT',
   el: 'el-GR',
   pl: 'pl-PL',
+  lt: 'lt-LT',
 };
 
 const DATE_LOCALE_MAP: Record<Language, string> = {
@@ -38,6 +39,7 @@ const DATE_LOCALE_MAP: Record<Language, string> = {
   it: 'it-IT',
   el: 'el-GR',
   pl: 'pl-PL',
+  lt: 'lt-LT',
 };
 
 const SUPPORTED_FIAT_CURRENCIES = new Set(['USD', 'EUR', 'CAD', 'CHF']);

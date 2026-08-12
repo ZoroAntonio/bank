@@ -1,6 +1,10 @@
 import { registerTranslations } from '../../contexts/LanguageContext';
+import { lt } from './lt';
+import { pl } from './pl';
 
 registerTranslations({
+  lt,
+  pl,
   en: {
     'internalTransfer.title': 'Internal Transfer',
     'internalTransfer.subtitle': 'Move funds between your currency balances',
@@ -22,6 +26,7 @@ registerTranslations({
 
     'internalTransfer.errors.invalidAmount': 'Enter a valid amount',
     'internalTransfer.errors.sameCurrency': 'Source and destination must be different currencies',
+    'internalTransfer.restrictedBalances': 'Pending and frozen balances remain visible for reference but cannot be used for transfers.',
   },
 
   fr: {

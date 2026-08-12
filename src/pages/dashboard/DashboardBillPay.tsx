@@ -16,9 +16,27 @@ import CryptoPaymentPanel from '../../components/billpay/CryptoPaymentPanel';
 import { useLanguage } from '../../contexts/LanguageContext';
 import '../../i18n/dashboard-billpay/translations';
 
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+function formatCurrency(amount: number, language: string) {
+  const localeMap: Record<string, string> = {
+    en: 'en-US',
+    fr: 'fr-FR',
+    de: 'de-DE',
+    es: 'es-ES',
+    it: 'it-IT',
+    el: 'el-GR',
+    pl: 'pl-PL',
+    lt: 'lt-LT',
+  };
+
+  return new Intl.NumberFormat(localeMap[language] || 'en-US', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(amount);
 }
+
+type SubmissionResult =
+  | { success: true; amount: number; billerName: string }
+  | { success: false; reason: 'notAuthenticated' | 'submissionError' };
 
 export default function DashboardBillPay() {
   const { t, language } = useLanguage();
@@ -28,7 +46,7 @@ export default function DashboardBillPay() {
   const [showForm, setShowForm] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'bank' | 'crypto'>('crypto');
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [result, setResult] = useState<SubmissionResult | null>(null);
 
   const [billerName, setBillerName] = useState('');
   const [amount, setAmount] = useState('');
@@ -48,6 +66,8 @@ export default function DashboardBillPay() {
       es: 'es-ES',
       it: 'it-IT',
       el: 'el-GR',
+      pl: 'pl-PL',
+      lt: 'lt-LT',
     };
 
     return new Date(dateStr).toLocaleDateString(localeMap[language] || 'en-US', {
@@ -102,11 +122,15 @@ export default function DashboardBillPay() {
     });
 
     if (res?.error) {
-      setResult({ success: false, message: res.error });
+      setResult({
+        success: false,
+        reason: res.error === 'Not authenticated' ? 'notAuthenticated' : 'submissionError',
+      });
     } else {
       setResult({
         success: true,
-        message: `${t('dashboardBillPay.messages.paymentOf')} ${formatCurrency(parsedAmount)} ${t('dashboardBillPay.messages.to')} ${billerName.trim()} ${t('dashboardBillPay.messages.submitted')}`,
+        amount: parsedAmount,
+        billerName: billerName.trim(),
       });
       resetForm();
       setShowForm(false);
@@ -124,6 +148,23 @@ export default function DashboardBillPay() {
   }
 
   const pendingCount = payments.filter((p) => p.status === 'pending').length;
+  const pendingPaymentKey = (() => {
+    if (pendingCount === 1) return 'dashboardBillPay.pending.payment';
+    if (language !== 'pl' && language !== 'lt') return 'dashboardBillPay.pending.payments';
+
+    const lastDigit = pendingCount % 10;
+    const lastTwoDigits = pendingCount % 100;
+    const upperFewLimit = language === 'lt' ? 9 : 4;
+    return lastDigit >= 2 && lastDigit <= upperFewLimit && (lastTwoDigits < 12 || lastTwoDigits > 19)
+      ? 'dashboardBillPay.pending.payments'
+      : 'dashboardBillPay.pending.paymentsMany';
+  })();
+
+  const resultMessage = result
+    ? result.success
+      ? `${t('dashboardBillPay.messages.paymentOf')} ${formatCurrency(result.amount, language)} ${t('dashboardBillPay.messages.to')} ${result.billerName} ${t('dashboardBillPay.messages.submitted')}`
+      : t(`dashboardBillPay.messages.${result.reason}`)
+    : '';
 
   return (
     <div className="space-y-6">
@@ -157,9 +198,8 @@ export default function DashboardBillPay() {
       {pendingCount > 0 && !showForm && (
         <div className="flex items-center gap-3 rounded-2xl border border-[#006446]/14 bg-[#006446]/[0.04] px-4 py-3 text-sm text-[#006446]">
           <Clock className="w-5 h-5 flex-shrink-0" />
-          {t('dashboardBillPay.pending.youHave')} {pendingCount} {pendingCount !== 1
-            ? t('dashboardBillPay.pending.payments')
-            : t('dashboardBillPay.pending.payment')} {t('dashboardBillPay.pending.awaitingApproval')}
+          {t('dashboardBillPay.pending.youHave')} {pendingCount} {t(pendingPaymentKey)}{' '}
+          {t('dashboardBillPay.pending.awaitingApproval')}
         </div>
       )}
 
@@ -176,7 +216,7 @@ export default function DashboardBillPay() {
                 ? t('dashboardBillPay.messages.submittedTitle')
                 : t('dashboardBillPay.messages.failedTitle')}
             </p>
-            <p className="mt-0.5 opacity-90">{result.message}</p>
+            <p className="mt-0.5 opacity-90">{resultMessage}</p>
           </div>
         </div>
       )}
@@ -332,6 +372,7 @@ export default function DashboardBillPay() {
       <PaymentHistory
         t={t}
         formatDate={formatDate}
+        formatAmount={(value) => formatCurrency(value, language)}
         payments={payments}
       />
     </div>
@@ -374,10 +415,12 @@ function StatusBadge({
 function PaymentHistory({
   t,
   formatDate,
+  formatAmount,
   payments,
 }: {
   t: (key: string) => string;
   formatDate: (dateStr: string) => string;
+  formatAmount: (amount: number) => string;
   payments: {
     id: string;
     biller_name: string;
@@ -434,7 +477,7 @@ function PaymentHistory({
               <div className="text-right flex-shrink-0 flex flex-col items-end gap-1.5">
                 {p.amount > 0 && (
                   <p className="text-sm font-semibold text-slate-900 tabular-nums">
-                    {formatCurrency(p.amount)}
+                    {formatAmount(p.amount)}
                   </p>
                 )}
                 <StatusBadge t={t} status={p.status} />

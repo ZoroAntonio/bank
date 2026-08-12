@@ -17,6 +17,18 @@ export type PdfInvoiceDocument = {
   status: string;
   subtitle: string;
   title: string;
+  labels?: {
+    amount: string;
+    date: string;
+    description: string;
+    invoiceNumber: string;
+    issued: string;
+    notes: string;
+    reference: string;
+    scanToVerify: string;
+    status: string;
+    totalAmount: string;
+  };
 };
 
 type PdfBuilder = {
@@ -63,6 +75,9 @@ export function wrapPdfText(value: string, maxLength: number) {
 
 function escapePdfText(value: string) {
   return value
+    .normalize('NFD')
+    .replace(/[łŁ]/g, (character) => character === 'ł' ? 'l' : 'L')
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^\x20-\x7E]/g, ' ')
     .replace(/\\/g, '\\\\')
     .replace(/\(/g, '\\(')
@@ -534,13 +549,25 @@ export function createProfessionalInvoicePdf(invoice: PdfInvoiceDocument, brandi
   const brandGreenLight = '0.82 0.90 0.87';
   const brandGreenSoft = '0.94 0.98 0.96';
   const accentText = '0.35 0.41 0.55';
+  const labels = invoice.labels || {
+    amount: 'Amount',
+    date: 'Date',
+    description: 'Description',
+    invoiceNumber: 'Invoice No.',
+    issued: 'Issued',
+    notes: 'Notes',
+    reference: 'Reference',
+    scanToVerify: 'SCAN TO VERIFY',
+    status: 'Status',
+    totalAmount: 'Total Amount',
+  };
   const qrPayload = [
     `INV:${invoice.invoiceNumber}`,
     `REF:${invoice.referenceId}`,
     `DATE:${invoice.date}`,
     `AMT:${invoice.amount}`,
   ].join('|');
-  const referenceLines = wrapPdfText(`Reference: ${invoice.referenceId}`, 34);
+  const referenceLines = wrapPdfText(`${labels.reference}: ${invoice.referenceId}`, 34);
   const titleLines = wrapPdfText(invoice.title, 34);
   const detailsBoxHeight = 132 + Math.max(0, referenceLines.length - 1) * 14;
   const detailsBoxTopY = 636;
@@ -567,26 +594,26 @@ export function createProfessionalInvoicePdf(invoice: PdfInvoiceDocument, brandi
   builder.text(branding.brandName.toUpperCase(), 42, 732, 24, 'F2', '1 1 1');
   builder.text(invoice.documentTitle, 42, 700, 30, 'F2', '1 1 1');
   builder.text(invoice.documentTitle, 420, 722, 14, 'F2', '1 1 1');
-  builder.text(`Date: ${invoice.date}`, 420, 702, 12, 'F2', '1 1 1');
+  builder.text(`${labels.date}: ${invoice.date}`, 420, 702, 12, 'F2', '1 1 1');
 
   builder.rect(42, detailsBoxBottomY, 354, detailsBoxHeight, '1 1 1', brandGreenLight);
   builder.text(invoice.sectionTitle, 58, 606, 13, 'F2', '0 0 0');
-  builder.text(`Invoice No.: ${invoice.invoiceNumber}`, 58, 584, 11, 'F1', accentText);
+  builder.text(`${labels.invoiceNumber}: ${invoice.invoiceNumber}`, 58, 584, 11, 'F1', accentText);
   referenceLines.forEach((line, index) => {
     builder.text(line, 58, 566 - index * 13, 11, 'F1', accentText);
   });
-  builder.text(`Status: ${invoice.status}`, 58, statusY, 11, 'F1', accentText);
-  builder.text(`Issued: ${invoice.date}`, 58, issuedY, 11, 'F1', accentText);
+  builder.text(`${labels.status}: ${invoice.status}`, 58, statusY, 11, 'F1', accentText);
+  builder.text(`${labels.issued}: ${invoice.date}`, 58, issuedY, 11, 'F1', accentText);
 
-  builder.text('SCAN TO VERIFY', 442, 614, 9, 'F2', brandGreen);
+  builder.text(labels.scanToVerify, 442, 614, 9, 'F2', brandGreen);
   drawQrCode(builder, qrPayload, 424, qrY, qrSize);
 
   titleLines.forEach((line, index) => {
     builder.text(line, 42, titleTopY - index * titleLineHeight, 18, 'F2', '0.09 0.13 0.22');
   });
   builder.rect(42, tableHeaderY, 528, 44, brandGreen);
-  builder.text('Description', 60, tableHeaderY + 18, 12, 'F2', '1 1 1');
-  builder.text('Amount', 470, tableHeaderY + 18, 12, 'F2', '1 1 1');
+  builder.text(labels.description, 60, tableHeaderY + 18, 12, 'F2', '1 1 1');
+  builder.text(labels.amount, 470, tableHeaderY + 18, 12, 'F2', '1 1 1');
 
   builder.rect(42, lineItemY, 528, 84, '1 1 1', brandGreenLight);
   builder.text(invoice.title, 60, lineItemY + 42, 12, 'F1', '0.18 0.21 0.29');
@@ -594,11 +621,11 @@ export function createProfessionalInvoicePdf(invoice: PdfInvoiceDocument, brandi
   builder.line(430, lineItemY, 430, tableHeaderY, '0.86 0.90 0.96', 0.7);
 
   builder.rect(42, totalRowY, 528, 56, brandGreenSoft);
-  builder.text('Total Amount', 60, totalRowY + 23, 13, 'F2', brandGreen);
+  builder.text(labels.totalAmount, 60, totalRowY + 23, 13, 'F2', brandGreen);
   builder.text(invoice.amount, 446, totalRowY + 23, 13, 'F2', brandGreen);
 
   builder.rect(42, notesBottomY, 528, notesHeight, '1 1 1', brandGreenLight, 0.8);
-  builder.text('Notes', 58, notesTopY - 24, 13, 'F2', '0 0 0');
+  builder.text(labels.notes, 58, notesTopY - 24, 13, 'F2', '0 0 0');
   noteLines.forEach((line, index) => {
     builder.text(line, 58, notesTopY - 48 - index * 14, 11, 'F1', accentText);
   });

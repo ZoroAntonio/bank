@@ -13,6 +13,7 @@ const LOCALE_MAP: Record<Language, string> = {
   it: 'it-IT',
   el: 'el-GR',
   pl: 'pl-PL',
+  lt: 'lt-LT',
 };
 
 function interpolate(template: string, vars: Record<string, string | number>) {
@@ -51,7 +52,7 @@ export default function DashboardProfile() {
     });
 
     if (res?.error) {
-      setResult({ success: false, message: res.error });
+      setResult({ success: false, message: t('dashboardProfile.error') });
     } else {
       setResult({ success: true, message: t('dashboardProfile.success') });
     }

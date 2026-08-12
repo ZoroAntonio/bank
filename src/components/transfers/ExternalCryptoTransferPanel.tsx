@@ -9,6 +9,7 @@ import type { CryptoBalance } from '../../hooks/useCryptoBalances';
 import Dropdown from '../ui/Dropdown';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { isBalanceAvailable } from '../../lib/balanceStatus';
+import { getLocalizedTransferError } from '../../lib/transferErrorI18n';
 import '../../i18n/external-crypto-transfer-panel/translations';
 
 const CRYPTO_COLORS: Record<string, { bg: string; text: string; accent: string }> = {
@@ -25,13 +26,13 @@ function formatCryptoAmount(amount: number, symbol: string) {
   return `${amount.toFixed(decimals)} ${symbol}`;
 }
 
-function getPlaceholder(symbol: string) {
+function getPlaceholder(symbol: string, t: (key: string) => string) {
   if (symbol === 'BTC') return 'bc1q...';
   if (symbol === 'ETH' || symbol === 'USDC') return '0x...';
-  if (symbol === 'SOL') return 'Solana address...';
+  if (symbol === 'SOL') return t('externalCryptoTransfer.placeholders.solanaAddress');
   if (symbol === 'DOGE') return 'D...';
   if (symbol === 'USDT') return 'T...';
-  return 'Wallet address';
+  return t('externalCryptoTransfer.placeholders.walletAddress');
 }
 
 interface Props {
@@ -53,7 +54,7 @@ export default function ExternalCryptoTransferPanel({
   onReceive,
   onSuccess,
 }: Props) {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const actionableWallets = wallets.filter((wallet) => {
     const balance = balances.find((entry) => entry.symbol === wallet.symbol);
     return balance ? isBalanceAvailable(balance.status) : false;
@@ -118,7 +119,7 @@ export default function ExternalCryptoTransferPanel({
         {restrictedCount > 0 && (
           <div className="mb-5 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            Pending and frozen balances remain visible for reference but cannot be used for send or receive requests.
+            {t('externalCryptoTransfer.restrictedBalances')}
           </div>
         )}
 
@@ -148,6 +149,7 @@ export default function ExternalCryptoTransferPanel({
         {mode === 'send' ? (
           <SendPanel
             t={t}
+            language={language}
             symbol={symbol}
             sourceAvailable={sourceAvailable}
             wallet={selectedWallet}
@@ -159,6 +161,7 @@ export default function ExternalCryptoTransferPanel({
         ) : (
           <ReceiveForm
             t={t}
+            language={language}
             symbol={symbol}
             wallet={selectedWallet}
             submitting={submitting}
@@ -174,6 +177,7 @@ export default function ExternalCryptoTransferPanel({
 
 function SendPanel({
   t,
+  language,
   symbol,
   sourceAvailable,
   wallet,
@@ -183,6 +187,7 @@ function SendPanel({
   disabled,
 }: {
   t: (key: string) => string;
+  language: string;
   symbol: string;
   sourceAvailable: number;
   wallet: CryptoWallet | undefined;
@@ -227,7 +232,7 @@ function SendPanel({
     });
 
     if (result.error) {
-      setError(result.error);
+      setError(getLocalizedTransferError(result.error, t, language));
     } else {
       setSuccess(true);
       setAmount('');
@@ -286,7 +291,7 @@ function SendPanel({
             type="text"
             value={recipientAddress}
             onChange={(e) => setRecipientAddress(e.target.value)}
-            placeholder={getPlaceholder(symbol)}
+            placeholder={getPlaceholder(symbol, t)}
             className="w-full rounded-xl border border-[#006446]/14 px-4 py-3 font-mono text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#006446]/20"
           />
         </div>
@@ -331,7 +336,7 @@ function SendPanel({
 
         {disabled ? (
           <p className="text-xs text-slate-400 text-center">
-            No available crypto balances can be used right now.
+            {t('externalCryptoTransfer.noAvailableBalances')}
           </p>
         ) : null}
       </form>
@@ -341,6 +346,7 @@ function SendPanel({
 
 function ReceiveForm({
   t,
+  language,
   symbol,
   wallet,
   submitting,
@@ -349,6 +355,7 @@ function ReceiveForm({
   disabled,
 }: {
   t: (key: string) => string;
+  language: string;
   symbol: string;
   wallet: CryptoWallet | undefined;
   submitting: boolean;
@@ -389,7 +396,7 @@ function ReceiveForm({
     });
 
     if (result.error) {
-      setError(result.error);
+      setError(getLocalizedTransferError(result.error, t, language));
     } else {
       setSuccess(true);
       setSenderAddress('');
@@ -424,7 +431,7 @@ function ReceiveForm({
           type="text"
           value={senderAddress}
           onChange={(e) => setSenderAddress(e.target.value)}
-          placeholder={getPlaceholder(symbol)}
+          placeholder={getPlaceholder(symbol, t)}
           className="w-full rounded-xl border border-[#006446]/14 px-4 py-3 font-mono text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#006446]/20"
         />
         <p className="mt-1 text-xs text-slate-400">
@@ -495,7 +502,7 @@ function ReceiveForm({
 
       {disabled ? (
         <p className="text-xs text-slate-400 text-center">
-          No available crypto balances can be used right now.
+          {t('externalCryptoTransfer.noAvailableBalances')}
         </p>
       ) : null}
     </form>

@@ -1,6 +1,10 @@
 import { registerTranslations } from '../../contexts/LanguageContext';
+import { lt } from './lt';
+import { pl } from './pl';
 
 registerTranslations({
+  lt,
+  pl,
   en: {
     'externalTransfer.title': 'External Bank Transfer',
     'externalTransfer.subtitle': 'Send funds to an external bank account',
@@ -35,6 +39,8 @@ registerTranslations({
     'externalTransfer.errors.bankRequired': 'Bank name is required',
     'externalTransfer.errors.ibanRequired': 'IBAN is required',
     'externalTransfer.errors.accountRequired': 'Account number is required',
+    'externalTransfer.restrictedBalances': 'Pending and frozen balances remain visible for reference but cannot be used for transfers.',
+    'externalTransfer.noAvailableBalances': 'No available fiat balances can be used for external transfers right now.',
   },
 
   fr: {

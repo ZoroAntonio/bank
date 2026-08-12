@@ -1,6 +1,17 @@
 import { registerTranslations } from '../../contexts/LanguageContext';
 
 registerTranslations({
+  lt: {
+    home: 'Pradžia',
+    personal: 'Privatiems klientams',
+    cards: 'Kredito ir debeto kortelės',
+    loans: 'Paskolos ir finansavimas',
+    investments: 'Turto valdymas',
+    business: 'Verslui',
+    international: 'Tarptautinės paslaugos',
+    about: 'Apie mus',
+    onlineBanking: 'Prisijungti',
+  },
   en: {
     home: "Home",
     personal: "Personal",

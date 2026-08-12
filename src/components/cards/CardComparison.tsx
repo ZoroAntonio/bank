@@ -8,9 +8,7 @@ const featureKeys = [
   'purchaseProtection', 'employeeCards', 'expenseTools', 'concierge',
 ];
 
-const featureValues: Record<string, { platinum: string | boolean; gold: string | boolean; business: string | boolean }> = {
-  annualFee: { platinum: '$0', gold: '$95', business: '$0' },
-  regularApr: { platinum: '16.99% - 24.99%', gold: '18.99% - 26.99%', business: '17.49% - 25.49%' },
+const featureValues: Record<string, { platinum: boolean; gold: boolean; business: boolean }> = {
   lounge: { platinum: false, gold: true, business: false },
   travelInsurance: { platinum: false, gold: true, business: true },
   purchaseProtection: { platinum: true, gold: true, business: true },
@@ -20,23 +18,15 @@ const featureValues: Record<string, { platinum: string | boolean; gold: string |
 };
 
 const translatedValueKeys: Record<string, { platinum?: string; gold?: string; business?: string }> = {
+  annualFee: { platinum: 'cards.comparison.annualFee.platinum', gold: 'cards.comparison.annualFee.gold', business: 'cards.comparison.annualFee.business' },
   introApr: { platinum: 'cards.comparison.introApr.platinum', gold: 'cards.comparison.introApr.gold', business: 'cards.comparison.introApr.business' },
-  welcomeBonus: { platinum: undefined, gold: 'cards.comparison.welcomeBonus.gold', business: undefined },
+  regularApr: { platinum: 'cards.comparison.regularApr.platinum', gold: 'cards.comparison.regularApr.gold', business: 'cards.comparison.regularApr.business' },
+  welcomeBonus: { platinum: 'cards.comparison.welcomeBonus.platinum', gold: 'cards.comparison.welcomeBonus.gold', business: 'cards.comparison.welcomeBonus.business' },
   topRewards: { platinum: 'cards.comparison.topRewards.platinum', gold: 'cards.comparison.topRewards.gold', business: 'cards.comparison.topRewards.business' },
   foreignFee: { platinum: 'cards.comparison.foreignFee.platinum', gold: 'cards.comparison.foreignFee.none', business: 'cards.comparison.foreignFee.none' },
 };
 
-const staticValues: Record<string, { platinum?: string; gold?: string; business?: string }> = {
-  welcomeBonus: { platinum: '$200', business: '$500' },
-};
-
 type CardType = 'platinum' | 'gold' | 'business';
-
-const cardNames: Record<CardType, string> = {
-  platinum: 'Platinum Rewards',
-  gold: 'Gold Elite',
-  business: 'Business Premier',
-};
 
 function CellValue({ value }: { value: string | boolean }) {
   if (typeof value === 'boolean') {
@@ -59,8 +49,6 @@ function getFeatureValue(
   }
   const tKey = translatedValueKeys[key]?.[card];
   if (tKey) return t(tKey);
-  const sVal = staticValues[key]?.[card];
-  if (sVal) return sVal;
   return '';
 }
 
@@ -95,7 +83,7 @@ export default function CardComparison() {
                     : 'text-[#006446]/70 hover:text-[#006446]'
                 }`}
               >
-                {cardNames[card]}
+                {t(`cards.${card}.name`)}
               </button>
             ))}
           </div>
@@ -115,7 +103,7 @@ export default function CardComparison() {
                       highlighted === card ? 'bg-[#006446]/[0.12] text-[#006446]' : 'bg-[#006446]/[0.05] text-[#006446]/60'
                     }`}
                   >
-                    {cardNames[card]}
+                    {t(`cards.${card}.name`)}
                   </th>
                 ))}
               </tr>

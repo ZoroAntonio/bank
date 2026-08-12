@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import QRCodeGenerator from 'qrcode';
+import { useLanguage } from '../../contexts/LanguageContext';
+import '../../i18n/qr-code/translations';
 
 interface QRCodeProps {
   data: string;
@@ -16,6 +18,7 @@ export default function QRCode({
   bgColor = '#ffffff',
   className = '',
 }: QRCodeProps) {
+  const { t } = useLanguage();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hasError, setHasError] = useState(false);
 
@@ -53,7 +56,7 @@ export default function QRCode({
         style={{ width: size, height: size }}
         role="alert"
       >
-        QR code unavailable
+        {t('qrCode.unavailable')}
       </div>
     );
   }
@@ -65,7 +68,7 @@ export default function QRCode({
       height={size}
       className={className}
       role="img"
-      aria-label="Scannable payment QR code"
+      aria-label={t('qrCode.scannablePayment')}
     />
   );
 }

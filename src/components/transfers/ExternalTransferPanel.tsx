@@ -5,10 +5,11 @@ import type { ExternalTransferPayload } from '../../hooks/useTransfers';
 import Dropdown from '../ui/Dropdown';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { isBalanceAvailable } from '../../lib/balanceStatus';
+import { getLocalizedTransferError } from '../../lib/transferErrorI18n';
 import '../../i18n/external-transfer-panel/translations';
 
-function formatCurrency(amount: number, currency: string) {
-  return new Intl.NumberFormat('en-US', {
+function formatCurrency(amount: number, currency: string, locale: string) {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
@@ -28,7 +29,7 @@ export default function ExternalTransferPanel({
   onSubmit,
   onSuccess,
 }: ExternalTransferPanelProps) {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const actionableBalances = fiatBalances.filter((balance) => isBalanceAvailable(balance.status));
   const restrictedCount = fiatBalances.length - actionableBalances.length;
 
@@ -85,7 +86,7 @@ export default function ExternalTransferPanel({
     });
 
     if (result.error) {
-      setError(result.error);
+      setError(getLocalizedTransferError(result.error, t, language));
     } else {
       setSuccess(true);
       setAmount('');
@@ -129,7 +130,7 @@ export default function ExternalTransferPanel({
         {restrictedCount > 0 && (
           <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            Pending and frozen balances remain visible for reference but cannot be used for transfers.
+            {t('externalTransfer.restrictedBalances')}
           </div>
         )}
 
@@ -150,7 +151,7 @@ export default function ExternalTransferPanel({
               onChange={setCurrency}
               options={actionableBalances.map((b) => ({
                 value: b.currency,
-                label: `${b.currency} (${formatCurrency(b.balance, b.currency)})`,
+                label: `${b.currency} (${formatCurrency(b.balance, b.currency, language)})`,
               }))}
             />
           </div>
@@ -175,7 +176,7 @@ export default function ExternalTransferPanel({
             </div>
             {sourceBalance && (
               <p className="mt-1 text-xs text-slate-400">
-                {t('externalTransfer.available')} {formatCurrency(sourceBalance.balance, sourceBalance.currency)}
+                {t('externalTransfer.available')} {formatCurrency(sourceBalance.balance, sourceBalance.currency, language)}
               </p>
             )}
           </div>
@@ -296,7 +297,7 @@ export default function ExternalTransferPanel({
 
         {actionableBalances.length === 0 ? (
           <p className="text-xs text-slate-400 text-center">
-            No available fiat balances can be used for external transfers right now.
+            {t('externalTransfer.noAvailableBalances')}
           </p>
         ) : null}
       </form>

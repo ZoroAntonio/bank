@@ -381,6 +381,7 @@ export default function BalanceAnalysisChart({
     it: 'it-IT',
     el: 'el-GR',
     pl: 'pl-PL',
+    lt: 'lt-LT',
   };
   const currentLocale = localeMap[language] || 'en-US';
 

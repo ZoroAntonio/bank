@@ -1,0 +1,17 @@
+export const lt = {
+  'internalTransfer.title': 'Vidinis pervedimas',
+  'internalTransfer.subtitle': 'Perkelkite lėšas tarp savo valiutos likučių',
+  'internalTransfer.success': 'Pervedimas pateiktas ir laukia patvirtinimo',
+  'internalTransfer.fields.from': 'Nuo',
+  'internalTransfer.fields.to': 'Į',
+  'internalTransfer.fields.amount': 'Suma',
+  'internalTransfer.fields.note': 'Pastaba',
+  'internalTransfer.placeholders.amount': '0.00',
+  'internalTransfer.actions.submit': 'Pervesti lėšas',
+  'internalTransfer.available': 'Galima:',
+  'internalTransfer.optional': 'neprivaloma',
+  'internalTransfer.needTwoBalances': 'Norint atlikti vidinius pervedimus, reikia bent dviejų valiutų likučių.',
+  'internalTransfer.errors.invalidAmount': 'Įveskite tinkamą sumą',
+  'internalTransfer.errors.sameCurrency': 'Šaltinio ir paskirties valiuta turi būti skirtinga',
+  'internalTransfer.restrictedBalances': 'Laukiami ir įšaldyti likučiai lieka matomi, bet negali būti naudojami pervedimams.',
+};

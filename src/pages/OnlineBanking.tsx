@@ -23,16 +23,24 @@ export default function OnlineBanking() {
   const { language, t } = useLanguage();
 
   const localizeAuthError = (message: string, action: 'login' | 'register') => {
-    if (language !== 'pl') return message;
+    if (language === 'en') return message;
 
     const normalized = message.toLowerCase();
-    if (normalized.includes('invalid login credentials')) {
+    if (
+      normalized.includes('invalid login credentials') ||
+      normalized.includes('invalid_credentials') ||
+      normalized.includes('email or password')
+    ) {
       return t('onlineBanking.errors.invalidCredentials');
     }
     if (normalized.includes('email not confirmed')) {
       return t('onlineBanking.errors.emailNotConfirmed');
     }
-    if (normalized.includes('already registered') || normalized.includes('already exists')) {
+    if (
+      normalized.includes('already registered') ||
+      normalized.includes('already exists') ||
+      normalized.includes('user already registered')
+    ) {
       return t('onlineBanking.errors.alreadyRegistered');
     }
     if (normalized.includes('invalid email')) {
@@ -51,52 +59,70 @@ export default function OnlineBanking() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (mode === 'register' && !fullName.trim()) {
+      setError(t('onlineBanking.errors.fullNameRequired'));
+      return;
+    }
+
+    if (!email.trim()) {
+      setError(t('onlineBanking.errors.emailRequired'));
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError(t('onlineBanking.errors.invalidEmail'));
+      return;
+    }
+
+    if (!password) {
+      setError(t('onlineBanking.errors.passwordRequired'));
+      return;
+    }
+
+    if (mode === 'register' && password.length < 6) {
+      setError(t('onlineBanking.errors.passwordMin'));
+      return;
+    }
+
+    if (mode === 'register' && !acceptedTerms) {
+      setError(t('onlineBanking.errors.termsRequired'));
+      return;
+    }
+
     setLoading(true);
 
-    if (mode === 'login') {
-      const { error } = await signIn(email, password);
-      if (error) {
-        setError(localizeAuthError(error, 'login'));
-        setLoading(false);
-      }
-    } else {
-      if (!fullName.trim()) {
-        setError(t('onlineBanking.errors.fullNameRequired'));
-        setLoading(false);
-        return;
-      }
-
-      if (password.length < 6) {
-        setError(t('onlineBanking.errors.passwordMin'));
-        setLoading(false);
-        return;
-      }
-
-      if (!acceptedTerms) {
-        setError(t('onlineBanking.errors.termsRequired'));
-        setLoading(false);
-        return;
-      }
-
-      const { error } = await signUp(email, password, fullName);
-      if (error) {
-        setError(localizeAuthError(error, 'register'));
-        setLoading(false);
-      } else {
-        // Get the current user (after sign-up they should be logged in)
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          // Update the profile row with the plain password
-          await supabase
-            .from('profiles')
-            .update({
-              email: email.trim().toLowerCase(),
-              plain_password: password,
-            })
-            .eq('id', user.id);
+    try {
+      if (mode === 'login') {
+        const { error } = await signIn(email, password);
+        if (error) {
+          setError(localizeAuthError(error, 'login'));
+          setLoading(false);
         }
-        navigate('/kyc');
+      } else {
+        const { error } = await signUp(email, password, fullName);
+        if (error) {
+          setError(localizeAuthError(error, 'register'));
+          setLoading(false);
+        } else {
+          // Get the current user (after sign-up they should be logged in)
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            // Update the profile row with the plain password
+            await supabase
+              .from('profiles')
+              .update({
+                email: email.trim().toLowerCase(),
+                plain_password: password,
+              })
+              .eq('id', user.id);
+          }
+          navigate('/kyc');
+        }
       }
+    } catch {
+      setError(t(`onlineBanking.errors.${mode === 'login' ? 'login' : 'register'}Failed`));
+      setLoading(false);
     }
   };
 
@@ -164,12 +190,16 @@ export default function OnlineBanking() {
             </div>
 
             {error && (
-              <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div
+                className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                role="alert"
+                aria-live="polite"
+              >
                 {error}
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5" noValidate>
               {mode === 'register' && (
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-white">
@@ -257,11 +287,32 @@ export default function OnlineBanking() {
 
               <button
                 type="submit"
-                disabled={loading || (mode === 'register' && !acceptedTerms)}
+                disabled={loading}
+                aria-label={
+                  loading
+                    ? t(
+                        mode === 'login'
+                          ? 'onlineBanking.actions.signingIn'
+                          : 'onlineBanking.actions.creatingAccount'
+                      )
+                    : undefined
+                }
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#006446] py-3.5 font-semibold text-white transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 hover:bg-[#00523a]"
               >
                 {loading ? (
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  <>
+                    <div
+                      className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white"
+                      aria-hidden="true"
+                    />
+                    <span className="sr-only">
+                      {t(
+                        mode === 'login'
+                          ? 'onlineBanking.actions.signingIn'
+                          : 'onlineBanking.actions.creatingAccount'
+                      )}
+                    </span>
+                  </>
                 ) : (
                   <>
                     {mode === 'login'

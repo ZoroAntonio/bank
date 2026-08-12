@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { getBalanceActionError, isBalanceAvailable } from '../lib/balanceStatus';
 import {
   isMissingIbanColumnError,
@@ -45,6 +46,7 @@ export interface ExternalTransferPayload {
 
 export function useTransfers() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [transfers, setTransfers] = useState<BankTransfer[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -128,7 +130,9 @@ export function useTransfers() {
         amount: payload.amount,
         currency: payload.currency,
         target_currency: payload.target_currency,
-        description: payload.description || `Transfer ${payload.currency} to ${payload.target_currency}`,
+        description: payload.description || t('dashboardTransfers.defaults.internalBank')
+          .replace('{source}', payload.currency)
+          .replace('{target}', payload.target_currency),
         status: 'pending',
       });
 
@@ -173,7 +177,8 @@ export function useTransfers() {
       iban: payload.iban,
       account_number: payload.account_number,
       swift_code: payload.swift_code,
-      description: payload.description || `Transfer to ${payload.recipient_name}`,
+      description: payload.description || t('dashboardTransfers.defaults.externalBank')
+        .replace('{recipient}', payload.recipient_name),
       status: 'pending',
     };
 

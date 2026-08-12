@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
 import { getBalanceActionError, isBalanceAvailable } from '../lib/balanceStatus';
 
 export interface CryptoWallet {
@@ -100,6 +101,7 @@ export function useCryptoWallets() {
 
 export function useCryptoTransfers() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [transfers, setTransfers] = useState<CryptoTransfer[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -188,7 +190,9 @@ export function useCryptoTransfers() {
         tx_hash: '',
         status: 'pending',
         fee: 0,
-        note: payload.note || `Convert ${payload.symbol} to ${payload.target_symbol}`,
+        note: payload.note || t('dashboardTransfers.defaults.internalCrypto')
+          .replace('{source}', payload.symbol)
+          .replace('{target}', payload.target_symbol),
       });
 
     if (insertError) {
@@ -243,7 +247,8 @@ export function useCryptoTransfers() {
         tx_hash: '',
         status: 'pending',
         fee: 0,
-        note: payload.note || `Send ${payload.symbol} to external wallet`,
+        note: payload.note || t('dashboardTransfers.defaults.sendCrypto')
+          .replace('{asset}', payload.symbol),
       });
 
     if (insertError) {
@@ -293,7 +298,8 @@ export function useCryptoTransfers() {
         tx_hash: '',
         status: 'pending',
         fee: 0,
-        note: payload.note || `Receive ${payload.symbol} from external wallet`,
+        note: payload.note || t('dashboardTransfers.defaults.receiveCrypto')
+          .replace('{asset}', payload.symbol),
       });
 
     if (insertError) {

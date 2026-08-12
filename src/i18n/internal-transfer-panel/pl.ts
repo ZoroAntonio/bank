@@ -1,0 +1,18 @@
+export const pl = {
+  'internalTransfer.title': 'Przelew wewnętrzny',
+  'internalTransfer.subtitle': 'Przenoś środki między saldami walutowymi',
+  'internalTransfer.success': 'Przelew został zlecony i oczekuje na weryfikację',
+  'internalTransfer.fields.from': 'Z',
+  'internalTransfer.fields.to': 'Na',
+  'internalTransfer.fields.amount': 'Kwota',
+  'internalTransfer.fields.note': 'Notatka',
+  'internalTransfer.placeholders.amount': '0,00',
+  'internalTransfer.placeholders.note': 'Cel przelewu',
+  'internalTransfer.actions.submit': 'Przelej środki',
+  'internalTransfer.available': 'Dostępne:',
+  'internalTransfer.optional': 'opcjonalnie',
+  'internalTransfer.needTwoBalances': 'Do wykonania przelewu wewnętrznego potrzebujesz co najmniej dwóch sald walutowych.',
+  'internalTransfer.errors.invalidAmount': 'Wprowadź prawidłową kwotę',
+  'internalTransfer.errors.sameCurrency': 'Waluta źródłowa i docelowa muszą być różne',
+  'internalTransfer.restrictedBalances': 'Salda oczekujące i zablokowane są widoczne informacyjnie, ale nie można ich użyć do przelewu.',
+};

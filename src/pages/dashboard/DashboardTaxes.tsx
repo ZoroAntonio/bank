@@ -17,7 +17,7 @@ import '../../i18n/dashboard-taxes/translations';
 import { formatTaxCurrency } from '../../lib/taxCurrency';
 
 export default function DashboardTaxes() {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const { summary: taxSummary, currency, loading } = useTaxSummary();
   const { wallet, loading: walletLoading } = useTaxWallet();
 
@@ -59,19 +59,19 @@ export default function DashboardTaxes() {
       <div className="grid gap-4 sm:grid-cols-3">
         <SummaryCard
           label={t('dashboardTaxes.status.pending')}
-          value={formatTaxCurrency(taxSummary.totals.pending, currency)}
+          value={formatTaxCurrency(taxSummary.totals.pending, currency, language)}
           icon={Clock}
           accent="bg-[#006446]/10 text-[#006446]"
         />
         <SummaryCard
           label={t('dashboardTaxes.status.onHold')}
-          value={formatTaxCurrency(taxSummary.totals.on_hold, currency)}
+          value={formatTaxCurrency(taxSummary.totals.on_hold, currency, language)}
           icon={PauseCircle}
           accent="bg-[#006446]/10 text-[#006446]"
         />
         <SummaryCard
           label={t('dashboardTaxes.status.paid')}
-          value={formatTaxCurrency(taxSummary.totals.paid, currency)}
+          value={formatTaxCurrency(taxSummary.totals.paid, currency, language)}
           icon={CheckCircle}
           accent="bg-[#006446]/10 text-[#006446]"
         />
@@ -113,9 +113,11 @@ export default function DashboardTaxes() {
                       {wallet.wallet_address}
                     </div>
                     <button
+                      type="button"
                       onClick={handleCopy}
                       className="group flex-shrink-0 rounded-xl border border-[#006446]/14 p-3 transition-colors hover:bg-[#006446]/[0.04]"
                       title={t('dashboardTaxes.actions.copyAddress')}
+                      aria-label={t('dashboardTaxes.actions.copyAddress')}
                     >
                       {copied ? (
                         <Check className="h-4 w-4 text-[#006446]" />

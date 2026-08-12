@@ -1,6 +1,8 @@
 import { registerTranslations } from '../../contexts/LanguageContext';
+import { lt } from './lt';
 
 registerTranslations({
+  lt,
   en: {
     'balanceStatus.badge.available': 'Available',
     'balanceStatus.badge.pending': 'Pending',
@@ -31,6 +33,8 @@ registerTranslations({
     'balanceStatus.restrictions.transfers': 'Pending and frozen crypto balances are shown for reference but cannot be used until marked available in CRM admin.',
     'balanceStatus.restrictions.depositActionBlocked': 'This asset is currently restricted and cannot be used for a deposit request.',
     'balanceStatus.restrictions.needTwoFiat': 'You need at least two available fiat balances to exchange funds.',
+    'balanceStatus.reference.title': 'Pending and frozen balances',
+    'balanceStatus.reference.description': 'Visible for reference and excluded from actions until marked available.',
   },
 
   fr: {
@@ -223,5 +227,7 @@ registerTranslations({
     'balanceStatus.restrictions.transfers': 'Oczekujące i zablokowane salda kryptowalutowe są widoczne informacyjnie, ale nie można ich używać do czasu oznaczenia ich jako dostępne w panelu CRM.',
     'balanceStatus.restrictions.depositActionBlocked': 'To aktywo jest obecnie objęte ograniczeniami i nie może zostać użyte do zlecenia wpłaty.',
     'balanceStatus.restrictions.needTwoFiat': 'Do wymiany środków potrzebujesz co najmniej dwóch dostępnych sald w walutach tradycyjnych.',
+    'balanceStatus.reference.title': 'Oczekujące i zablokowane salda',
+    'balanceStatus.reference.description': 'Są widoczne informacyjnie i wyłączone z operacji do czasu oznaczenia ich jako dostępne.',
   },
 });
