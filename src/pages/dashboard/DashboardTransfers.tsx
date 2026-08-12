@@ -144,12 +144,13 @@ function buildBankTransferInvoice(
 ) {
   const isInternal = transfer.transfer_type === 'internal';
   const amount = formatCurrency(transfer.amount, transfer.currency, locale);
+  const transferId = /^trx-/i.test(transfer.id) ? transfer.id : `trx-${transfer.id}`;
 
   return {
-    transferId: transfer.id,
+    transferId,
     transferType: isInternal
       ? t('dashboardTransfers.details.internal')
-      : t('dashboardTransfers.details.external'),
+      : 'International Transfer',
     date: formatTransferInvoiceDate(transfer.created_at, locale),
     status: getStatusLabel(t, transfer.status),
     amount,
