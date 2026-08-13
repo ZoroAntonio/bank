@@ -1095,6 +1095,41 @@ function normalizeWalletAdminPayload(payload: Record<string, unknown>) {
   };
 }
 
+function buildTaxSummaryCardUpsertRows(
+  rows: AdminRow[],
+  userId: string,
+  targetStatus: TaxStatus,
+  targetAmount: number,
+  currency: string
+) {
+  const amounts = new Map<TaxStatus, number>();
+
+  rows.forEach((row) => {
+    amounts.set(normalizeTaxStatus(row.status), getNumericTaxAmount(row.amount));
+  });
+
+  return TAX_STATUS_OPTIONS.map(({ value: status }) => ({
+    user_id: userId,
+    status,
+    amount: status === targetStatus ? targetAmount : amounts.get(status) || 0,
+    currency,
+    updated_at: new Date().toISOString(),
+  }));
+}
+
+function shouldRetryTaxSummaryWithoutRpc(error: { code?: string; message?: string } | null) {
+  if (!error) return false;
+
+  const message = (error.message || '').toLowerCase();
+  return error.code === 'P0001'
+    || error.code === 'PGRST202'
+    || error.code === '42883'
+    || error.code === '42501'
+    || message.includes('admin access required')
+    || message.includes('could not find the function')
+    || message.includes('permission denied');
+}
+
 function isLongField(key: string, value: unknown) {
   const longKeys = ['comment', 'description', 'details', 'notes', 'review_notes', 'address', 'wallet_address', 'payment_uri', 'tx_hash'];
   return typeof value === 'string' && (value.length > 48 || longKeys.some((part) => key.includes(part)));
@@ -6552,15 +6587,41 @@ export default function CrmAdmin() {
     setNotice(null);
 
     if (tableErrors[TAX_SUMMARY_CARDS_TABLE_NAME] === null) {
-      const { data, error } = await supabase.rpc('set_tax_summary_card', {
+      const normalizedCurrency = normalizeTaxCurrency(currency);
+      let { data, error } = await supabase.rpc('set_tax_summary_card', {
         target_user_id: selectedUserId,
         target_status: status,
         target_amount: normalizedAmount,
-        target_currency: normalizeTaxCurrency(currency),
+        target_currency: normalizedCurrency,
       });
 
+      // Older deployments restricted this RPC to top-level admins even though
+      // tax_summary_cards RLS already permits scoped CRM staff. Keep agents and
+      // managers functional while the corrected function propagates everywhere.
+      if (error && shouldRetryTaxSummaryWithoutRpc(error)) {
+        const fallbackResult = await supabase
+          .from(TAX_SUMMARY_CARDS_TABLE_NAME)
+          .upsert(
+            buildTaxSummaryCardUpsertRows(
+              tableData[TAX_SUMMARY_CARDS_TABLE_NAME] || [],
+              selectedUserId,
+              status,
+              normalizedAmount,
+              normalizedCurrency
+            ),
+            { onConflict: 'user_id,status' }
+          )
+          .select();
+
+        data = fallbackResult.data;
+        error = fallbackResult.error;
+      }
+
       if (error) {
-        setNotice({ kind: 'error', message: error.message });
+        setNotice({
+          kind: 'error',
+          message: `Could not update the customer's tax summary: ${error.message}`,
+        });
       } else {
         setTableData((prev) => ({
           ...prev,
