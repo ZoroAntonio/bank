@@ -4,62 +4,46 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#006446" />
-    <meta name="application-name" content="" />
-    <meta name="apple-mobile-web-app-title" content="" />
-    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
-    <meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
-    <link rel="icon" href="data:," sizes="any" />
-    <link rel="icon" type="image/png" sizes="192x192" href="data:," />
-    <link rel="icon" type="image/png" sizes="32x32" href="data:," />
-    <link rel="icon" type="image/png" sizes="16x16" href="data:," />
-    <link rel="apple-touch-icon" sizes="180x180" href="data:," />
+    <meta name="application-name" content="URBO BANK" />
+    <meta name="apple-mobile-web-app-title" content="URBO BANK" />
+    <meta name="description" content="Secure digital banking, payments, transfers, cards, and account management with URBO BANK." />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="googlebot" content="index, follow, max-image-preview:large" />
 
-    <title></title>
-    <script>
-      (() => {
-        const showNeutralBootstrap = () => {
-          document.title = '';
-          const neutralIcon = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"%3E%3Ccircle cx="32" cy="32" r="22" fill="%23006446"/%3E%3C/svg%3E';
-          document.head.querySelectorAll('link[rel="icon"], link[rel="apple-touch-icon"]').forEach((link) => {
-            link.setAttribute('href', neutralIcon);
-          });
-        };
+    <link rel="canonical" href="https://www.urbouab.com/" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="image_src" href="https://www.urbouab.com/social-preview.png?v=20260813" />
 
-        try {
-          const cached = JSON.parse(localStorage.getItem('site-branding:settings') || 'null');
-          if (!cached || typeof cached !== 'object') {
-            showNeutralBootstrap();
-            return;
-          }
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:site_name" content="URBO BANK" />
+    <meta property="og:url" content="https://www.urbouab.com/" />
+    <meta property="og:title" content="URBO BANK | Secure Digital Banking" />
+    <meta property="og:description" content="Secure digital banking, payments, transfers, cards, and account management with URBO BANK." />
+    <meta property="og:image" content="https://www.urbouab.com/social-preview.png?v=20260813" />
+    <meta property="og:image:secure_url" content="https://www.urbouab.com/social-preview.png?v=20260813" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="URBO BANK - Secure digital banking" />
 
-          const setMeta = (selector, value) => {
-            if (!value) return;
-            document.head.querySelector(selector)?.setAttribute('content', value);
-          };
-          const setLink = (rel, sizes, value, type) => {
-            if (!value) return;
-            const link = document.head.querySelector(`link[rel="${rel}"][sizes="${sizes}"]`);
-            if (!link) return;
-            link.setAttribute('href', value);
-            if (type) link.setAttribute('type', type);
-          };
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://www.urbouab.com/" />
+    <meta name="twitter:title" content="URBO BANK | Secure Digital Banking" />
+    <meta name="twitter:description" content="Secure digital banking, payments, transfers, cards, and account management with URBO BANK." />
+    <meta name="twitter:image" content="https://www.urbouab.com/social-preview.png?v=20260813" />
+    <meta name="twitter:image:alt" content="URBO BANK - Secure digital banking" />
 
-          if (typeof cached.brandName === 'string' && cached.brandName.trim()) {
-            document.title = cached.brandName.trim();
-            setMeta('meta[name="application-name"]', cached.brandName.trim());
-            setMeta('meta[name="apple-mobile-web-app-title"]', cached.brandName.trim());
-          }
+    <meta itemprop="name" content="URBO BANK | Secure Digital Banking" />
+    <meta itemprop="description" content="Secure digital banking, payments, transfers, cards, and account management with URBO BANK." />
+    <meta itemprop="image" content="https://www.urbouab.com/social-preview.png?v=20260813" />
 
-          setLink('icon', 'any', cached.faviconIcoUrl, 'image/x-icon');
-          setLink('icon', '16x16', cached.favicon16Url, 'image/png');
-          setLink('icon', '32x32', cached.favicon32Url, 'image/png');
-          setLink('icon', '192x192', cached.favicon192Url, 'image/png');
-          setLink('apple-touch-icon', '180x180', cached.appleTouchIconUrl, 'image/png');
-        } catch {
-          showNeutralBootstrap();
-        }
-      })();
-    </script>
+    <title>URBO BANK | Secure Digital Banking</title>
   </head>
   <body>
     <div id="root"></div>

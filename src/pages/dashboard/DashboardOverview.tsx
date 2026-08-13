@@ -17,8 +17,11 @@ import {
   CheckCircle,
   Check,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTransactions } from '../../hooks/useBankingData';
+import { useCryptoTransactions } from '../../hooks/useCryptoTransactions';
+import { useTransfers } from '../../hooks/useTransfers';
+import { useCryptoTransfers } from '../../hooks/useCryptoWallets';
 import { useFiatBalances } from '../../hooks/useFiatBalances';
 import { useCryptoBalances } from '../../hooks/useCryptoBalances';
 import { useAuth } from '../../contexts/AuthContext';
@@ -87,31 +90,17 @@ function toSentenceCase(value: string) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-const TRANSACTION_TYPES = new Set([
-  'credit',
-  'debit',
-  'deposit',
-  'withdrawal',
-  'income',
-  'refund',
-  'received',
-  'payment',
-  'transfer',
-  'purchase',
-  'fee',
-  'exchange',
-]);
+const TRANSACTION_STATUSES = new Set(['completed', 'pending', 'processing', 'approved', 'failed', 'rejected', 'cancelled']);
 
-const TRANSACTION_STATUSES = new Set(['completed', 'pending', 'failed', 'rejected', 'cancelled']);
-
-function getLocalizedTransactionType(t: (key: string) => string, value: string) {
-  const normalized = value.trim().toLowerCase();
-  if (!normalized) return t('dashboardOverview.transactions.type.empty');
-  if (TRANSACTION_TYPES.has(normalized)) {
-    return t(`dashboardOverview.transactions.type.${normalized}`);
-  }
-  return toSentenceCase(value);
-}
+type RecentActivity = {
+  id: string;
+  createdAt: string;
+  description: string;
+  reference: string;
+  status: string;
+  typeLabel: string;
+  inflow: boolean;
+};
 
 function getLocalizedTransactionStatus(t: (key: string) => string, value: string) {
   const normalized = value.trim().toLowerCase() || 'completed';
@@ -177,6 +166,9 @@ export default function DashboardOverview() {
   const { user, profile } = useAuth();
   const { fiatBalances, loading: fiatLoading } = useFiatBalances();
   const { transactions, loading: txLoading } = useTransactions();
+  const { transactions: cryptoTransactions, loading: cryptoTxLoading } = useCryptoTransactions();
+  const { transfers: bankTransfers, loading: bankTransfersLoading } = useTransfers();
+  const { transfers: cryptoTransfers, loading: cryptoTransfersLoading } = useCryptoTransfers();
   const { cryptoBalances, loading: cryptoLoading } = useCryptoBalances();
   const { summary: taxSummary, currency: taxCurrency, loading: taxLoading } = useTaxSummary();
   const { t, language } = useLanguage();
@@ -194,6 +186,85 @@ export default function DashboardOverview() {
   };
   const currentLocale = localeMap[language] || 'en-US';
 
+  const recentActivity = useMemo<RecentActivity[]>(() => {
+    const bankingTransactionRows: RecentActivity[] = transactions.map((transaction) => ({
+      id: `bank-transaction:${transaction.id}`,
+      createdAt: transaction.created_at,
+      description: transaction.description || t('dashboardOverview.transactions.noDetails'),
+      reference: transaction.reference || t('dashboardOverview.transactions.noReference'),
+      status: transaction.status,
+      typeLabel: t('dashboardOverview.activity.bankTransaction'),
+      inflow: isBankingInflow(transaction.type),
+    }));
+
+    const cryptoTransactionRows: RecentActivity[] = cryptoTransactions.map((transaction) => ({
+      id: `crypto-transaction:${transaction.id}`,
+      createdAt: transaction.created_at,
+      description: transaction.description
+        || transaction.comment
+        || `${toSentenceCase(transaction.type)} ${transaction.symbol}`,
+      reference: transaction.tx_hash
+        || `${transaction.amount.toLocaleString(currentLocale, { maximumFractionDigits: 8 })} ${transaction.symbol}`,
+      status: transaction.status,
+      typeLabel: t('dashboardOverview.activity.cryptoTransaction'),
+      inflow: transaction.type === 'buy' || transaction.type === 'receive',
+    }));
+
+    const bankTransferRows: RecentActivity[] = bankTransfers.map((transfer) => {
+      const destination = transfer.transfer_type === 'internal'
+        ? transfer.target_currency || transfer.currency
+        : transfer.recipient_name || transfer.bank_name;
+
+      return {
+        id: `bank-transfer:${transfer.id}`,
+        createdAt: transfer.created_at,
+        description: transfer.description
+          || (destination
+            ? `${t('dashboardOverview.activity.transferTo')} ${destination}`
+            : t('dashboardOverview.activity.bankTransfer')),
+        reference: `${formatCurrency(transfer.amount, transfer.currency, currentLocale)}${destination ? ` · ${destination}` : ''}`,
+        status: transfer.status,
+        typeLabel: t('dashboardOverview.activity.bankTransfer'),
+        inflow: false,
+      };
+    });
+
+    const cryptoTransferRows: RecentActivity[] = cryptoTransfers.map((transfer) => {
+      const isIncoming = transfer.direction === 'receive';
+      const destination = transfer.transfer_type === 'internal'
+        ? transfer.target_symbol
+        : isIncoming
+        ? transfer.sender_address
+        : transfer.recipient_address;
+      const directionLabel = isIncoming
+        ? t('dashboardOverview.activity.cryptoReceived')
+        : t('dashboardOverview.activity.cryptoSent');
+
+      return {
+        id: `crypto-transfer:${transfer.id}`,
+        createdAt: transfer.created_at,
+        description: transfer.note || `${directionLabel} ${transfer.symbol}`,
+        reference: `${transfer.amount.toLocaleString(currentLocale, { maximumFractionDigits: 8 })} ${transfer.symbol}${destination ? ` · ${destination}` : ''}`,
+        status: transfer.status,
+        typeLabel: t('dashboardOverview.activity.cryptoTransfer'),
+        inflow: isIncoming,
+      };
+    });
+
+    return [
+      ...bankingTransactionRows,
+      ...cryptoTransactionRows,
+      ...bankTransferRows,
+      ...cryptoTransferRows,
+    ]
+      .sort((left, right) => {
+        const leftTime = new Date(left.createdAt).getTime();
+        const rightTime = new Date(right.createdAt).getTime();
+        return (Number.isFinite(rightTime) ? rightTime : 0) - (Number.isFinite(leftTime) ? leftTime : 0);
+      })
+      .slice(0, 8);
+  }, [bankTransfers, cryptoTransactions, cryptoTransfers, currentLocale, t, transactions]);
+
   const getFiatAssetName = (currency: string, customName: string) => {
     if (customName.trim()) return customName.trim();
 
@@ -208,8 +279,6 @@ export default function DashboardOverview() {
       return currency;
     }
   };
-
-  const recentTransactions = transactions.slice(0, 8);
 
   const greeting = () => {
     const hour = new Date().getHours();
@@ -247,7 +316,15 @@ export default function DashboardOverview() {
     }
   };
 
-  if (fiatLoading || txLoading || cryptoLoading || taxLoading) {
+  if (
+    fiatLoading
+    || txLoading
+    || cryptoTxLoading
+    || bankTransfersLoading
+    || cryptoTransfersLoading
+    || cryptoLoading
+    || taxLoading
+  ) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 rounded-full border-2 border-[#006446]/20 border-t-[#006446] animate-spin" />
@@ -489,18 +566,24 @@ export default function DashboardOverview() {
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 border border-[#006446]/14 bg-white shadow-[0_24px_60px_-48px_rgba(0,100,70,0.45)]">
-          <div className="flex items-center justify-between border-b border-[#006446]/10 px-6 py-4">
-            <h2 className="font-semibold text-slate-900">{t('dashboardOverview.transactions.title')}</h2>
-            <Link to="/dashboard/transactions" className="text-sm font-medium text-[#006446] hover:text-[#004d36]">
-              {t('dashboardOverview.viewAll')}
-            </Link>
+          <div className="flex flex-col gap-3 border-b border-[#006446]/10 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="font-semibold text-slate-900">{t('dashboardOverview.activity.title')}</h2>
+            <div className="flex flex-wrap items-center gap-3 text-sm font-medium">
+              <Link to="/dashboard/transactions" className="text-[#006446] hover:text-[#004d36]">
+                {t('dashboardOverview.activity.viewTransactions')}
+              </Link>
+              <span className="text-slate-300" aria-hidden="true">|</span>
+              <Link to="/dashboard/transfers" className="text-[#006446] hover:text-[#004d36]">
+                {t('dashboardOverview.activity.viewTransfers')}
+              </Link>
+            </div>
           </div>
 
           <div className="divide-y divide-[#006446]/10">
-            {recentTransactions.map((tx) => (
-              <div key={tx.id} className="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-[#006446]/[0.03]">
-                <div className={`w-10 h-10 flex items-center justify-center flex-shrink-0 ${isBankingInflow(tx.type) ? 'bg-[#006446]/10 text-[#006446]' : 'bg-slate-100 text-slate-600'}`}>
-                  {isBankingInflow(tx.type) ? (
+            {recentActivity.map((activity) => (
+              <div key={activity.id} className="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-[#006446]/[0.03]">
+                <div className={`w-10 h-10 flex items-center justify-center flex-shrink-0 ${activity.inflow ? 'bg-[#006446]/10 text-[#006446]' : 'bg-slate-100 text-slate-600'}`}>
+                  {activity.inflow ? (
                     <ArrowDownLeft className="w-5 h-5" />
                   ) : (
                     <ArrowUpRight className="w-5 h-5" />
@@ -508,29 +591,29 @@ export default function DashboardOverview() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-slate-900 truncate">
-                    {tx.description || t('dashboardOverview.transactions.noDetails')}
+                    {activity.description}
                   </p>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
-                    <p className="text-xs text-slate-400">{formatDate(tx.created_at)}</p>
-                    <span className="rounded-full border border-[#006446]/12 bg-[#006446]/[0.03] px-2 py-0.5 text-[11px] font-medium text-[#006446]">
-                      {tx.reference || t('dashboardOverview.transactions.noReference')}
+                    <p className="text-xs text-slate-400">{formatDate(activity.createdAt)}</p>
+                    <span className="max-w-full truncate rounded-full border border-[#006446]/12 bg-[#006446]/[0.03] px-2 py-0.5 text-[11px] font-medium text-[#006446] sm:max-w-[420px]">
+                      {activity.reference}
                     </span>
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-2 text-right flex-shrink-0">
-                  <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${bankingStatusClasses(tx.status)}`}>
-                    {getLocalizedTransactionStatus(t, tx.status)}
+                  <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${bankingStatusClasses(activity.status)}`}>
+                    {getLocalizedTransactionStatus(t, activity.status)}
                   </span>
                   <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-slate-600">
-                    {getLocalizedTransactionType(t, tx.type)}
+                    {activity.typeLabel}
                   </span>
                 </div>
               </div>
             ))}
 
-            {recentTransactions.length === 0 && (
+            {recentActivity.length === 0 && (
               <div className="px-6 py-12 text-center text-slate-400">
-                {t('dashboardOverview.transactions.empty')}
+                {t('dashboardOverview.activity.empty')}
               </div>
             )}
           </div>

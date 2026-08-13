@@ -1,23 +1,12 @@
 {
   "routes": [
     {
-      "src": "/.*",
+      "src": "/social-preview.png",
       "headers": {
-        "X-Robots-Tag": "noindex, nofollow, noarchive, nosnippet, noimageindex",
-        "Cache-Control": "no-store, no-cache, max-age=0, must-revalidate"
+        "Cache-Control": "public, max-age=3600, s-maxage=86400, immutable",
+        "Access-Control-Allow-Origin": "*"
       },
       "continue": true
-    },
-    {
-      "src": "/.*",
-      "has": [
-        {
-          "type": "header",
-          "key": "user-agent",
-          "value": ".*(facebookexternalhit|Facebot|WhatsApp|TelegramBot).*"
-        }
-      ],
-      "status": 204
     },
     { "handle": "filesystem" },
     {
