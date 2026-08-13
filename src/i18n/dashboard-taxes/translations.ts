@@ -78,6 +78,9 @@ registerTranslations({
     'dashboardTaxes.payPanel.subtitle': 'Envoyez votre paiement à l’adresse du portefeuille ci-dessous',
     'dashboardTaxes.payPanel.scanToPay': 'Scanner pour payer',
     'dashboardTaxes.payPanel.walletAddress': 'Votre adresse de portefeuille',
+    'dashboardTaxes.payPanel.asset': 'Actif',
+    'dashboardTaxes.payPanel.network': 'Réseau',
+    'dashboardTaxes.payPanel.notConfigured': 'Non configuré',
     'dashboardTaxes.payPanel.description':
       'Utilisez cette adresse de portefeuille pour effectuer vos paiements d’impôts. Copiez l’adresse ou scannez le code QR avec votre application de paiement. Les paiements apparaîtront dans vos dossiers fiscaux une fois traités.',
 
@@ -120,6 +123,9 @@ registerTranslations({
     'dashboardTaxes.payPanel.subtitle': 'Senden Sie Ihre Zahlung an die untenstehende Wallet-Adresse',
     'dashboardTaxes.payPanel.scanToPay': 'Zum Bezahlen scannen',
     'dashboardTaxes.payPanel.walletAddress': 'Ihre Wallet-Adresse',
+    'dashboardTaxes.payPanel.asset': 'Asset',
+    'dashboardTaxes.payPanel.network': 'Netzwerk',
+    'dashboardTaxes.payPanel.notConfigured': 'Nicht konfiguriert',
     'dashboardTaxes.payPanel.description':
       'Verwenden Sie diese Wallet-Adresse, um Steuerzahlungen zu leisten. Kopieren Sie die Adresse oder scannen Sie den QR-Code mit Ihrer Zahlungs-App. Zahlungen werden nach der Verarbeitung in Ihren Steuerunterlagen angezeigt.',
 
@@ -162,6 +168,9 @@ registerTranslations({
     'dashboardTaxes.payPanel.subtitle': 'Envía tu pago a la dirección de billetera que aparece abajo',
     'dashboardTaxes.payPanel.scanToPay': 'Escanea para pagar',
     'dashboardTaxes.payPanel.walletAddress': 'Tu dirección de billetera',
+    'dashboardTaxes.payPanel.asset': 'Activo',
+    'dashboardTaxes.payPanel.network': 'Red',
+    'dashboardTaxes.payPanel.notConfigured': 'No configurado',
     'dashboardTaxes.payPanel.description':
       'Usa esta dirección de billetera para realizar pagos de impuestos. Copia la dirección o escanea el código QR con tu aplicación de pago. Los pagos se reflejarán en tus registros fiscales una vez procesados.',
 
@@ -204,6 +213,9 @@ registerTranslations({
     'dashboardTaxes.payPanel.subtitle': 'Invia il tuo pagamento all’indirizzo wallet qui sotto',
     'dashboardTaxes.payPanel.scanToPay': 'Scansiona per pagare',
     'dashboardTaxes.payPanel.walletAddress': 'Il tuo indirizzo wallet',
+    'dashboardTaxes.payPanel.asset': 'Asset',
+    'dashboardTaxes.payPanel.network': 'Rete',
+    'dashboardTaxes.payPanel.notConfigured': 'Non configurato',
     'dashboardTaxes.payPanel.description':
       'Usa questo indirizzo wallet per effettuare pagamenti fiscali. Copia l’indirizzo o scansiona il codice QR con la tua app di pagamento. I pagamenti appariranno nei tuoi registri fiscali una volta elaborati.',
 
@@ -246,6 +258,9 @@ registerTranslations({
     'dashboardTaxes.payPanel.subtitle': 'Στείλτε την πληρωμή σας στη διεύθυνση wallet παρακάτω',
     'dashboardTaxes.payPanel.scanToPay': 'Σάρωση για πληρωμή',
     'dashboardTaxes.payPanel.walletAddress': 'Η διεύθυνση του wallet σας',
+    'dashboardTaxes.payPanel.asset': 'Στοιχείο',
+    'dashboardTaxes.payPanel.network': 'Δίκτυο',
+    'dashboardTaxes.payPanel.notConfigured': 'Δεν έχει ρυθμιστεί',
     'dashboardTaxes.payPanel.description':
       'Χρησιμοποιήστε αυτή τη διεύθυνση wallet για να πραγματοποιήσετε φορολογικές πληρωμές. Αντιγράψτε τη διεύθυνση ή σαρώστε το QR code με την εφαρμογή πληρωμής σας. Οι πληρωμές θα εμφανιστούν στα φορολογικά σας αρχεία μόλις επεξεργαστούν.',
 

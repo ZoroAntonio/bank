@@ -430,7 +430,7 @@ export default function DashboardFixedDeposits() {
           {wallet && !walletReady ? (
             <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="alert">
               <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0" />
-              <span>{paymentRequest?.error || t('dashboardAddFund.messages.walletUnavailable')}</span>
+              <span>{t('dashboardAddFund.messages.walletUnavailable')}</span>
             </div>
           ) : null}
 
