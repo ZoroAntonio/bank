@@ -21,6 +21,9 @@ export const pl = {
   'dashboardTaxes.payPanel.subtitle': 'Wyślij płatność na poniższy adres portfela',
   'dashboardTaxes.payPanel.scanToPay': 'Zeskanuj, aby zapłacić',
   'dashboardTaxes.payPanel.walletAddress': 'Adres portfela do płatności',
+  'dashboardTaxes.payPanel.asset': 'Aktywo',
+  'dashboardTaxes.payPanel.network': 'Sieć',
+  'dashboardTaxes.payPanel.notConfigured': 'Nie skonfigurowano',
   'dashboardTaxes.payPanel.description':
     'Użyj tego adresu portfela do opłacenia podatków. Skopiuj adres lub zeskanuj kod QR w aplikacji płatniczej. Po przetworzeniu płatność zostanie uwzględniona w Twoich rozliczeniach podatkowych.',
   'dashboardTaxes.records.title': 'Rozliczenia podatkowe',

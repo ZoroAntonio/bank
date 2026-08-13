@@ -26,21 +26,24 @@ export function useTaxWallet() {
     }
     setLoading(true);
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('tax_wallet_addresses')
       .select('*')
       .eq('user_id', user.id)
       .maybeSingle();
 
-    if (data) {
-      setWallet(data as TaxWallet);
+    if (error) {
+      setWallet(null);
+    } else if (data) {
+      setWallet({
+        ...(data as TaxWallet),
+        wallet_address: String(data.wallet_address || '').trim(),
+        symbol: String(data.symbol || '').trim().toUpperCase(),
+        network: String(data.network || '').trim(),
+        payment_uri: String(data.payment_uri || '').trim(),
+      });
     } else {
-      const { data: newData } = await supabase
-        .from('tax_wallet_addresses')
-        .insert({ user_id: user.id })
-        .select()
-        .maybeSingle();
-      setWallet((newData as TaxWallet) || null);
+      setWallet(null);
     }
 
     setLoading(false);
@@ -49,6 +52,28 @@ export function useTaxWallet() {
   useEffect(() => {
     void fetchWallet();
   }, [fetchWallet]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`tax-wallet-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tax_wallet_addresses',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => void fetchWallet(),
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [fetchWallet, user]);
 
   return { wallet, loading };
 }

@@ -33,6 +33,9 @@ registerTranslations({
     'dashboardTaxes.payPanel.subtitle': 'Send your payment to the wallet address below',
     'dashboardTaxes.payPanel.scanToPay': 'Scan to pay',
     'dashboardTaxes.payPanel.walletAddress': 'Your Wallet Address',
+    'dashboardTaxes.payPanel.asset': 'Asset',
+    'dashboardTaxes.payPanel.network': 'Network',
+    'dashboardTaxes.payPanel.notConfigured': 'Not configured',
     'dashboardTaxes.payPanel.description':
       'Use this wallet address to make tax payments. Copy the address or scan the QR code with your payment app. Payments will be reflected in your tax records once processed.',
 

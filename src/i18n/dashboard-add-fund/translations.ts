@@ -20,6 +20,7 @@ registerTranslations({
     'dashboardAddFund.messages.addressCopied': 'Address copied to clipboard',
     'dashboardAddFund.messages.notAuthenticated': 'You must be signed in to submit a deposit.',
     'dashboardAddFund.messages.submissionError': 'The deposit request could not be submitted. Please try again.',
+    'dashboardAddFund.messages.walletUnavailable': 'A valid deposit wallet has not been configured for this asset. Contact support before sending funds.',
 
     'dashboardAddFund.form.title': 'Deposit Crypto',
     'dashboardAddFund.form.selectAsset': 'Select Asset',

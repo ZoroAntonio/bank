@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { getCryptoPaymentRequest } from '../lib/cryptoPayment';
 
 export interface CryptoDeposit {
   id: string;
@@ -9,16 +10,12 @@ export interface CryptoDeposit {
   crypto_name: string;
   amount: number;
   status: 'pending' | 'approved' | 'completed' | 'failed';
+  wallet_id?: string | null;
+  wallet_address?: string;
+  network?: string;
+  payment_uri?: string;
   created_at: string;
 }
-
-export const SUPPORTED_ASSETS = [
-  { symbol: 'BTC', name: 'Bitcoin' },
-  { symbol: 'ETH', name: 'Ethereum' },
-  { symbol: 'SOL', name: 'Solana' },
-  { symbol: 'USDC', name: 'USD Coin' },
-  { symbol: 'USDT', name: 'Tether' },
-];
 
 export function useAddFund() {
   const { user } = useAuth();
@@ -34,22 +31,42 @@ export function useAddFund() {
     setLoading(true);
     const { data } = await supabase
       .from('crypto_deposits')
-      .select('id, user_id, symbol, crypto_name, amount, status, created_at')
+      .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
     setDeposits((data as CryptoDeposit[]) || []);
     setLoading(false);
   }, [user]);
 
-  const addFund = async (params: { symbol: string; cryptoName: string; amount: number }) => {
+  const addFund = async (params: { walletId: string; symbol: string; amount: number }) => {
     if (!user) return { error: 'Not authenticated' };
+
+    const { data: wallet, error: walletError } = await supabase
+      .from('crypto_wallets')
+      .select('id, user_id, symbol, name, wallet_address, network, payment_uri')
+      .eq('id', params.walletId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (walletError || !wallet || String(wallet.symbol).trim().toUpperCase() !== params.symbol.trim().toUpperCase()) {
+      return { error: 'Deposit wallet unavailable' };
+    }
+
+    const paymentRequest = getCryptoPaymentRequest(wallet);
+    if (!paymentRequest.valid) {
+      return { error: paymentRequest.error || 'Deposit wallet unavailable' };
+    }
 
     const { error: insertErr } = await supabase.from('crypto_deposits').insert({
       user_id: user.id,
-      symbol: params.symbol,
-      crypto_name: params.cryptoName,
+      symbol: String(wallet.symbol).trim().toUpperCase(),
+      crypto_name: String(wallet.name || wallet.symbol).trim(),
       amount: params.amount,
       status: 'pending',
+      wallet_id: wallet.id,
+      wallet_address: paymentRequest.address,
+      network: String(wallet.network || '').trim(),
+      payment_uri: paymentRequest.payload,
     });
     if (insertErr) return { error: insertErr.message };
 

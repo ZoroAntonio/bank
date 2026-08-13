@@ -43,6 +43,21 @@ const EVM_CHAIN_IDS: Record<string, number> = {
   avalanche: 43114,
   avalanchecchain: 43114,
   base: 8453,
+  fantom: 250,
+  fantomopera: 250,
+  gnosis: 100,
+  gnosischain: 100,
+  celo: 42220,
+  cronos: 25,
+  moonbeam: 1284,
+  moonriver: 1285,
+  zksync: 324,
+  zksyncera: 324,
+  linea: 59144,
+  scroll: 534352,
+  mantle: 5000,
+  blast: 81457,
+  opbnb: 204,
 };
 
 const EVM_NATIVE_SYMBOLS: Record<string, string[]> = {
@@ -59,6 +74,21 @@ const EVM_NATIVE_SYMBOLS: Record<string, string[]> = {
   avalanche: ['AVAX'],
   avalanchecchain: ['AVAX'],
   base: ['ETH'],
+  fantom: ['FTM'],
+  fantomopera: ['FTM'],
+  gnosis: ['XDAI'],
+  gnosischain: ['XDAI'],
+  celo: ['CELO'],
+  cronos: ['CRO'],
+  moonbeam: ['GLMR'],
+  moonriver: ['MOVR'],
+  zksync: ['ETH'],
+  zksyncera: ['ETH'],
+  linea: ['ETH'],
+  scroll: ['ETH'],
+  mantle: ['MNT'],
+  blast: ['ETH'],
+  opbnb: ['BNB'],
 };
 
 function compact(value?: string | null) {
@@ -112,6 +142,60 @@ function validateBitcoin(address: string) {
         continue;
       }
       if (decoder === bech32m && version >= 1 && version <= 16 && program.length >= 2 && program.length <= 40) return true;
+    } catch {
+      // Try the other checksum variant.
+    }
+  }
+  return false;
+}
+
+const CASHADDR_CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
+const CASHADDR_GENERATORS = [
+  0x98f2bc8e61n,
+  0x79b76d99e2n,
+  0xf33e5fb3c4n,
+  0xae2eabe2a8n,
+  0x1e4f43e470n,
+];
+
+function cashAddressPolymod(values: number[]) {
+  let checksum = 1n;
+  values.forEach((value) => {
+    const top = checksum >> 35n;
+    checksum = ((checksum & 0x07ffffffffn) << 5n) ^ BigInt(value);
+    CASHADDR_GENERATORS.forEach((generator, index) => {
+      if ((top >> BigInt(index)) & 1n) checksum ^= generator;
+    });
+  });
+  return checksum ^ 1n;
+}
+
+function validateBitcoinCash(address: string) {
+  if (address !== address.toLowerCase() && address !== address.toUpperCase()) return false;
+
+  const normalized = address.toLowerCase();
+  const separatorIndex = normalized.indexOf(':');
+  const prefix = separatorIndex >= 0 ? normalized.slice(0, separatorIndex) : 'bitcoincash';
+  const payload = separatorIndex >= 0 ? normalized.slice(separatorIndex + 1) : normalized;
+  if (prefix !== 'bitcoincash' || payload.length < 42 || payload.length > 112) return false;
+
+  const values = Array.from(payload, (character) => CASHADDR_CHARSET.indexOf(character));
+  if (values.some((value) => value < 0)) return false;
+  const prefixValues = [...Array.from(prefix, (character) => character.charCodeAt(0) & 31), 0];
+  return cashAddressPolymod([...prefixValues, ...values]) === 0n;
+}
+
+function validateLitecoin(address: string) {
+  if (validateBase58check(address, [0x30, 0x32, 0x05])) return true;
+
+  for (const decoder of [bech32, bech32m]) {
+    try {
+      const decoded = decoder.decode(address, 90);
+      if (decoded.prefix !== 'ltc' || decoded.words.length < 2) continue;
+      const [version, ...programWords] = decoded.words;
+      const program = decoder.fromWords(programWords);
+      if (version === 0 && decoder === bech32 && (program.length === 20 || program.length === 32)) return true;
+      if (version >= 1 && version <= 16 && decoder === bech32m && program.length >= 2 && program.length <= 40) return true;
     } catch {
       // Try the other checksum variant.
     }
@@ -228,12 +312,10 @@ export function getCryptoPaymentRequest(wallet: CryptoPaymentWallet): CryptoPaym
       valid = validateBase58check(address, [0x1e, 0x16]);
       break;
     case 'litecoin':
-      valid = address.toLowerCase().startsWith('ltc1')
-        ? Boolean(bech32.decodeUnsafe(address, 90))
-        : validateBase58check(address, [0x30, 0x32, 0x05]);
+      valid = validateLitecoin(address);
       break;
     case 'bitcoin-cash':
-      valid = /^(?:bitcoincash:)?(?:q|p)[a-z0-9]{41,61}$/i.test(address);
+      valid = validateBitcoinCash(address);
       break;
     case 'tron':
       valid = validateTron(address);

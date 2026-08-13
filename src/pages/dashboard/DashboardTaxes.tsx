@@ -20,11 +20,17 @@ export default function DashboardTaxes() {
   const { language, t } = useLanguage();
   const { summary: taxSummary, currency, loading } = useTaxSummary();
   const { wallet, loading: walletLoading } = useTaxWallet();
+  const paymentWallet = wallet || {
+    wallet_address: '',
+    symbol: '',
+    network: '',
+    payment_uri: '',
+  };
 
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    if (!wallet) return;
+    if (!wallet?.wallet_address) return;
     try {
       await navigator.clipboard.writeText(wallet.wallet_address);
       setCopied(true);
@@ -77,8 +83,7 @@ export default function DashboardTaxes() {
         />
       </div>
 
-      {wallet && (
-        <div className="overflow-hidden rounded-2xl border border-[#006446]/14 bg-white shadow-[0_24px_60px_-48px_rgba(0,100,70,0.45)]">
+      <div className="overflow-hidden rounded-2xl border border-[#006446]/14 bg-white shadow-[0_24px_60px_-48px_rgba(0,100,70,0.45)]">
           <div className="border-b border-[#006446]/10 bg-gradient-to-r from-[#006446]/[0.04] to-white px-6 py-4">
             <div className="flex items-center gap-2">
               <Wallet className="h-5 w-5 text-[#006446]" />
@@ -95,7 +100,7 @@ export default function DashboardTaxes() {
             <div className="flex flex-col items-center gap-8 lg:flex-row lg:items-start">
               <div className="flex flex-shrink-0 flex-col items-center gap-4">
                 <div className="border-2 border-slate-200 bg-white p-3 shadow-sm">
-                  <CryptoWalletQRCode wallet={wallet} size={180} />
+                  <CryptoWalletQRCode wallet={paymentWallet} size={180} />
                 </div>
                 <div className="flex items-center gap-1.5 text-xs text-slate-400">
                   <QrCode className="h-3.5 w-3.5" />
@@ -104,18 +109,33 @@ export default function DashboardTaxes() {
               </div>
 
               <div className="w-full flex-1 space-y-5">
+                {(paymentWallet.symbol || paymentWallet.network) && (
+                  <div className="flex flex-wrap gap-2">
+                    {paymentWallet.symbol ? (
+                      <span className="rounded-full border border-[#006446]/14 bg-[#006446]/[0.04] px-3 py-1 text-xs font-semibold text-[#006446]">
+                        {t('dashboardTaxes.payPanel.asset')}: {paymentWallet.symbol}
+                      </span>
+                    ) : null}
+                    {paymentWallet.network ? (
+                      <span className="rounded-full border border-[#006446]/14 bg-[#006446]/[0.04] px-3 py-1 text-xs font-semibold text-[#006446]">
+                        {t('dashboardTaxes.payPanel.network')}: {paymentWallet.network}
+                      </span>
+                    ) : null}
+                  </div>
+                )}
                 <div>
                   <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[#006446]">
                     {t('dashboardTaxes.payPanel.walletAddress')}
                   </label>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 select-all break-all rounded-xl border border-[#006446]/14 bg-[#006446]/[0.04] px-4 py-3 font-mono text-sm text-slate-700">
-                      {wallet.wallet_address}
+                      {paymentWallet.wallet_address || t('dashboardTaxes.payPanel.notConfigured')}
                     </div>
                     <button
                       type="button"
                       onClick={handleCopy}
-                      className="group flex-shrink-0 rounded-xl border border-[#006446]/14 p-3 transition-colors hover:bg-[#006446]/[0.04]"
+                      disabled={!paymentWallet.wallet_address}
+                      className="group flex-shrink-0 rounded-xl border border-[#006446]/14 p-3 transition-colors hover:bg-[#006446]/[0.04] disabled:cursor-not-allowed disabled:opacity-40"
                       title={t('dashboardTaxes.actions.copyAddress')}
                       aria-label={t('dashboardTaxes.actions.copyAddress')}
                     >
@@ -142,7 +162,6 @@ export default function DashboardTaxes() {
             </div>
           </div>
         </div>
-      )}
     </div>
   );
 }

@@ -1078,8 +1078,24 @@ function sanitizeInsertPayload(row: AdminRow) {
   return payload;
 }
 
+function normalizeWalletAdminPayload(payload: Record<string, unknown>) {
+  return {
+    ...payload,
+    symbol: String(payload.symbol || '').trim().toUpperCase(),
+    network: String(payload.network || '').trim(),
+    wallet_address: String(payload.wallet_address || '').trim(),
+    payment_uri: String(payload.payment_uri || '').trim(),
+    ...(Object.prototype.hasOwnProperty.call(payload, 'name')
+      ? { name: String(payload.name || '').trim() }
+      : {}),
+    ...(Object.prototype.hasOwnProperty.call(payload, 'label')
+      ? { label: String(payload.label || '').trim() || 'Tax Payment Wallet' }
+      : {}),
+  };
+}
+
 function isLongField(key: string, value: unknown) {
-  const longKeys = ['comment', 'description', 'details', 'notes', 'review_notes', 'address', 'wallet_address', 'tx_hash'];
+  const longKeys = ['comment', 'description', 'details', 'notes', 'review_notes', 'address', 'wallet_address', 'payment_uri', 'tx_hash'];
   return typeof value === 'string' && (value.length > 48 || longKeys.some((part) => key.includes(part)));
 }
 
@@ -2900,6 +2916,15 @@ function RecordFormCard({
   const toneClasses = getRecordToneClasses(tone);
   const tableLabelClasses = getRecordTableLabelClasses(tone);
   const editableEntries = Object.entries(form).filter(([key]) => shouldShowEditableRowField(form, key));
+  const isWalletRecord = row.__source_table === 'crypto_wallets' || row.__source_table === 'tax_wallet_addresses';
+  const walletPaymentRequest = isWalletRecord
+    ? getCryptoPaymentRequest({
+        wallet_address: String(form.wallet_address || ''),
+        symbol: String(form.symbol || ''),
+        network: String(form.network || ''),
+        payment_uri: String(form.payment_uri || ''),
+      })
+    : null;
 
   return (
     <div className={`border bg-white shadow-[0_24px_60px_-48px_rgba(0,100,70,0.45)] ${toneClasses.container}`}>
@@ -2927,6 +2952,20 @@ function RecordFormCard({
           ))}
         </div>
       )}
+
+      {walletPaymentRequest ? (
+        <div className={`mx-5 mt-4 flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm ${walletPaymentRequest.valid ? 'border-[#006446]/14 bg-[#006446]/[0.04] text-[#006446]' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+          {walletPaymentRequest.valid ? <Check className="mt-0.5 h-4 w-4 flex-shrink-0" /> : <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />}
+          <div>
+            <p className="font-semibold">{walletPaymentRequest.valid ? `QR ready: ${walletPaymentRequest.format}` : 'Wallet is not ready'}</p>
+            <p className="mt-1 text-xs opacity-80">
+              {walletPaymentRequest.valid
+                ? 'The customer dashboard will encode this destination after you save the record.'
+                : walletPaymentRequest.error}
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid gap-4 px-5 py-4 md:grid-cols-2">
         {editableEntries.map(([key, value]) => {
@@ -4302,6 +4341,9 @@ function WalletCreateCard({
               ? 'Creates a row in `crypto_wallets`.'
               : 'Creates a row in `tax_wallet_addresses`.'}
           </p>
+          <p className="mt-2 text-xs leading-relaxed text-slate-500">
+            Enter the real custody address plus its asset symbol and network. The customer QR is generated automatically. Use `payment_uri` only when a token or network requires an exact provider-supplied payment URI.
+          </p>
         </div>
 
         <div className="space-y-3">
@@ -5410,6 +5452,8 @@ export default function CrmAdmin() {
       validFields.forEach((field) => {
         payload[field.key.trim()] = parseDraftValue(field.value);
       });
+
+      Object.assign(payload, normalizeWalletAdminPayload(payload));
 
       if (sourceConfig.scope === 'user' && sourceConfig.filterColumn && selectedUserId) {
         payload[sourceConfig.filterColumn] = payload[sourceConfig.filterColumn] ?? selectedUserId;
@@ -6764,7 +6808,7 @@ export default function CrmAdmin() {
       return;
     }
 
-    const sanitized = sanitizePayload(editedRow);
+    const sanitized = normalizeWalletAdminPayload(sanitizePayload(editedRow));
     const paymentRequest = getCryptoPaymentRequest({
       wallet_address: String(sanitized.wallet_address || ''),
       symbol: String(sanitized.symbol || ''),

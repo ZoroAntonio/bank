@@ -57,7 +57,6 @@ export function useCryptoWallets() {
   const { user } = useAuth();
   const [wallets, setWallets] = useState<CryptoWallet[]>([]);
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(false);
 
   const fetchWallets = useCallback(async () => {
     if (!user) {
@@ -71,7 +70,14 @@ export function useCryptoWallets() {
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: true });
-    setWallets((data as CryptoWallet[]) || []);
+    setWallets(((data as CryptoWallet[]) || []).map((wallet) => ({
+      ...wallet,
+      symbol: String(wallet.symbol || '').trim().toUpperCase(),
+      name: String(wallet.name || '').trim(),
+      network: String(wallet.network || '').trim(),
+      wallet_address: String(wallet.wallet_address || '').trim(),
+      payment_uri: String(wallet.payment_uri || '').trim(),
+    })));
     setLoading(false);
   }, [user]);
 
@@ -79,24 +85,29 @@ export function useCryptoWallets() {
     fetchWallets();
   }, [fetchWallets]);
 
-  const updateWalletAddress = useCallback(async (symbol: string, walletAddress: string) => {
-    if (!user) return { error: 'Not authenticated' };
-    setUpdating(true);
-    const { error } = await supabase
-      .from('crypto_wallets')
-      .update({ wallet_address: walletAddress })
-      .eq('user_id', user.id)
-      .eq('symbol', symbol);
-    if (error) {
-      setUpdating(false);
-      return { error: error.message };
-    }
-    await fetchWallets();
-    setUpdating(false);
-    return { error: null };
-  }, [user, fetchWallets]);
+  useEffect(() => {
+    if (!user) return;
 
-  return { wallets, loading, updating, updateWalletAddress, refetch: fetchWallets };
+    const channel = supabase
+      .channel(`crypto-wallets-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'crypto_wallets',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => void fetchWallets(),
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [fetchWallets, user]);
+
+  return { wallets, loading, refetch: fetchWallets };
 }
 
 export function useCryptoTransfers() {

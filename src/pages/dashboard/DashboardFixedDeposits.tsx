@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Plus,
   AlertCircle,
@@ -8,10 +8,11 @@ import {
   Copy,
   Check,
 } from 'lucide-react';
-import { useAddFund, SUPPORTED_ASSETS } from '../../hooks/useFixedDeposits';
+import { useAddFund } from '../../hooks/useFixedDeposits';
 import { useCryptoBalances } from '../../hooks/useCryptoBalances';
 import { useCryptoWallets } from '../../hooks/useCryptoWallets';
 import CryptoWalletQRCode from '../../components/ui/CryptoWalletQRCode';
+import { getCryptoPaymentRequest } from '../../lib/cryptoPayment';
 import { useLanguage } from '../../contexts/LanguageContext';
 import {
   getBalanceStatusClasses,
@@ -90,14 +91,36 @@ export default function DashboardFixedDeposits() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const assetOptions = useMemo(() => {
+    const assets = new Map<string, { symbol: string; name: string }>();
+
+    cryptoBalances.forEach((balance) => {
+      const symbol = balance.symbol.trim().toUpperCase();
+      if (symbol) assets.set(symbol, { symbol, name: balance.name.trim() || symbol });
+    });
+
+    wallets.forEach((entry) => {
+      const symbol = entry.symbol.trim().toUpperCase();
+      if (symbol) assets.set(symbol, { symbol, name: entry.name.trim() || assets.get(symbol)?.name || symbol });
+    });
+
+    return Array.from(assets.values());
+  }, [cryptoBalances, wallets]);
   const availableBalances = cryptoBalances.filter((balance) => isBalanceAvailable(balance.status));
   const restrictedBalanceCount = cryptoBalances.filter((balance) => !isBalanceAvailable(balance.status)).length;
 
   const numAmount = parseFloat(amount) || 0;
-  const selectedInfo = SUPPORTED_ASSETS.find((a) => a.symbol === selectedAsset);
+  const selectedInfo = assetOptions.find((a) => a.symbol === selectedAsset);
   const wallet = wallets.find((entry) => entry.symbol === selectedAsset);
+  const paymentRequest = wallet ? getCryptoPaymentRequest(wallet) : null;
+  const walletReady = Boolean(wallet && paymentRequest?.valid);
   const selectedBalance = cryptoBalances.find((entry) => entry.symbol === selectedAsset);
   const selectedBalanceAvailable = !selectedBalance || isBalanceAvailable(selectedBalance.status);
+
+  useEffect(() => {
+    if (assetOptions.some((asset) => asset.symbol === selectedAsset)) return;
+    setSelectedAsset(assetOptions[0]?.symbol || '');
+  }, [assetOptions, selectedAsset]);
 
   useEffect(() => {
     if (selectedBalanceAvailable) return;
@@ -138,14 +161,14 @@ export default function DashboardFixedDeposits() {
 
   const handleAddFund = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (numAmount <= 0 || !selectedInfo || !selectedBalanceAvailable) return;
+    if (numAmount <= 0 || !selectedInfo || !wallet || !walletReady || !selectedBalanceAvailable) return;
 
     setSubmitting(true);
     setResult(null);
 
     const res = await addFund({
+      walletId: wallet.id,
       symbol: selectedInfo.symbol,
-      cryptoName: selectedInfo.name,
       amount: numAmount,
     });
 
@@ -154,6 +177,8 @@ export default function DashboardFixedDeposits() {
         success: false,
         message: t(res.error === 'Not authenticated'
           ? 'dashboardAddFund.messages.notAuthenticated'
+          : res.error === 'Deposit wallet unavailable' || res.error?.startsWith('No wallet') || res.error?.startsWith('This is not a valid')
+          ? 'dashboardAddFund.messages.walletUnavailable'
           : 'dashboardAddFund.messages.submissionError'),
       });
     } else {
@@ -200,8 +225,8 @@ export default function DashboardFixedDeposits() {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        {SUPPORTED_ASSETS.map((asset) => {
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+        {assetOptions.map((asset) => {
           const bal = cryptoBalances.find((b) => b.symbol === asset.symbol);
           const logo = CRYPTO_LOGOS[asset.symbol];
           const balanceAvailable = isBalanceAvailable(bal?.status);
@@ -271,8 +296,8 @@ export default function DashboardFixedDeposits() {
               {t('dashboardAddFund.form.selectAsset')}
             </p>
 
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-              {SUPPORTED_ASSETS.map((asset) => {
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
+              {assetOptions.map((asset) => {
                 const bal = cryptoBalances.find((b) => b.symbol === asset.symbol);
                 const logo = CRYPTO_LOGOS[asset.symbol];
                 const canUseAsset = isBalanceAvailable(bal?.status);
@@ -328,7 +353,7 @@ export default function DashboardFixedDeposits() {
             </div>
           ) : null}
 
-          {wallet && wallet.wallet_address && (
+          {wallet ? (
             <div className="mb-6 rounded-2xl border border-[#006446]/14 bg-[#006446]/[0.04] p-5">
               <div className="flex flex-col sm:flex-row gap-6">
                 <div className="flex-shrink-0 flex flex-col items-center">
@@ -395,7 +420,19 @@ export default function DashboardFixedDeposits() {
                 </div>
               </div>
             </div>
+          ) : (
+            <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="alert">
+              <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0" />
+              <span>{t('dashboardAddFund.messages.walletUnavailable')}</span>
+            </div>
           )}
+
+          {wallet && !walletReady ? (
+            <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800" role="alert">
+              <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0" />
+              <span>{paymentRequest?.error || t('dashboardAddFund.messages.walletUnavailable')}</span>
+            </div>
+          ) : null}
 
           <form onSubmit={handleAddFund} className="space-y-4">
             <div>
@@ -446,7 +483,7 @@ export default function DashboardFixedDeposits() {
             <div className="flex gap-3">
               <button
                 type="submit"
-                disabled={submitting || numAmount <= 0 || !selectedBalanceAvailable}
+                disabled={submitting || numAmount <= 0 || !selectedBalanceAvailable || !walletReady}
                 className="rounded-xl bg-[#006446] px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#00523a] disabled:bg-slate-300 disabled:text-slate-500"
               >
                 {submitting

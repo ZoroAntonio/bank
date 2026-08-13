@@ -11,6 +11,7 @@ export const lt = {
   'dashboardAddFund.messages.addressCopied': 'Adresas nukopijuotas į mainų sritį',
   'dashboardAddFund.messages.notAuthenticated': 'Norėdami pateikti įmokos prašymą, turite būti prisijungę.',
   'dashboardAddFund.messages.submissionError': 'Įmokos prašymo pateikti nepavyko. Bandykite dar kartą.',
+  'dashboardAddFund.messages.walletUnavailable': 'Šiam turtui nesukonfigūruota tinkama įmokų piniginė. Prieš siųsdami lėšas susisiekite su pagalbos tarnyba.',
   'dashboardAddFund.form.title': 'Įnešti kriptovaliutos',
   'dashboardAddFund.form.selectAsset': 'Pasirinkite turtą',
   'dashboardAddFund.form.balanceShort': 'Likutis',

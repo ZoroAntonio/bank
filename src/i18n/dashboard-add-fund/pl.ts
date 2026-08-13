@@ -11,6 +11,7 @@ export const pl = {
   'dashboardAddFund.messages.addressCopied': 'Adres został skopiowany do schowka',
   'dashboardAddFund.messages.notAuthenticated': 'Aby zlecić wpłatę, musisz się zalogować.',
   'dashboardAddFund.messages.submissionError': 'Nie udało się wysłać zlecenia wpłaty. Spróbuj ponownie.',
+  'dashboardAddFund.messages.walletUnavailable': 'Dla tego aktywa nie skonfigurowano prawidłowego portfela wpłat. Skontaktuj się z pomocą przed wysłaniem środków.',
   'dashboardAddFund.form.title': 'Wpłać kryptowalutę',
   'dashboardAddFund.form.selectAsset': 'Wybierz aktywo',
   'dashboardAddFund.form.balanceShort': 'Saldo',
