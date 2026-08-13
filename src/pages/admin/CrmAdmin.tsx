@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import BrandLogo from '../../components/ui/BrandLogo';
 import Dropdown from '../../components/ui/Dropdown';
+import QRCode from '../../components/ui/QRCode';
 import IpWhitelistCard from '../../components/admin/IpWhitelistCard';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -2815,6 +2816,10 @@ function shouldShowEditableRowField(row: AdminRow, key: string) {
   const sourceTable = String(row.__source_table || '');
   const transferType = String(row.transfer_type || '');
 
+  if (sourceTable === 'crypto_wallets' || sourceTable === 'tax_wallet_addresses') {
+    return key === 'wallet_address';
+  }
+
   if (sourceTable === 'bank_transfers') {
     const externalFields = ['recipient_name', 'bank_name', 'iban', 'account_number', 'swift_code'];
 
@@ -2910,21 +2915,22 @@ function RecordFormCard({
     setForm(row);
   }, [row]);
 
-  const previewEntries = summariseEntries(form);
+  const isWalletRecord = row.__source_table === 'crypto_wallets' || row.__source_table === 'tax_wallet_addresses';
+  const previewEntries = isWalletRecord ? [] : summariseEntries(form);
   const sourceLabel = getRowSourceLabel(row);
   const sourceKind = getRowSourceKind(row);
   const toneClasses = getRecordToneClasses(tone);
   const tableLabelClasses = getRecordTableLabelClasses(tone);
   const editableEntries = Object.entries(form).filter(([key]) => shouldShowEditableRowField(form, key));
-  const isWalletRecord = row.__source_table === 'crypto_wallets' || row.__source_table === 'tax_wallet_addresses';
-  const walletPaymentRequest = isWalletRecord
-    ? getCryptoPaymentRequest({
-        wallet_address: String(form.wallet_address || ''),
-        symbol: String(form.symbol || ''),
-        network: String(form.network || ''),
-        payment_uri: String(form.payment_uri || ''),
-      })
+  const walletPreview = isWalletRecord
+    ? {
+        wallet_address: String(form.wallet_address || '').trim(),
+        symbol: row.__source_table === 'tax_wallet_addresses' ? '' : String(form.symbol || ''),
+        network: row.__source_table === 'tax_wallet_addresses' ? '' : String(form.network || ''),
+        payment_uri: '',
+      }
     : null;
+  const walletPaymentRequest = walletPreview ? getCryptoPaymentRequest(walletPreview) : null;
 
   return (
     <div className={`border bg-white shadow-[0_24px_60px_-48px_rgba(0,100,70,0.45)] ${toneClasses.container}`}>
@@ -2953,17 +2959,26 @@ function RecordFormCard({
         </div>
       )}
 
-      {walletPaymentRequest ? (
-        <div className={`mx-5 mt-4 flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm ${walletPaymentRequest.valid ? 'border-[#006446]/14 bg-[#006446]/[0.04] text-[#006446]' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
-          {walletPaymentRequest.valid ? <Check className="mt-0.5 h-4 w-4 flex-shrink-0" /> : <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />}
-          <div>
-            <p className="font-semibold">{walletPaymentRequest.valid ? `QR ready: ${walletPaymentRequest.format}` : 'Wallet is not ready'}</p>
-            <p className="mt-1 text-xs opacity-80">
-              {walletPaymentRequest.valid
-                ? 'The customer dashboard will encode this destination after you save the record.'
-                : walletPaymentRequest.error}
-            </p>
+      {walletPaymentRequest && walletPreview ? (
+        <div className={`mx-5 mt-4 grid gap-4 rounded-2xl border px-4 py-4 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center ${walletPaymentRequest.valid ? 'border-[#006446]/14 bg-[#006446]/[0.04] text-[#006446]' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+          <div className="flex items-start gap-3">
+            {walletPaymentRequest.valid ? <Check className="mt-0.5 h-4 w-4 flex-shrink-0" /> : <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />}
+            <div>
+              <p className="font-semibold">{walletPaymentRequest.valid ? `QR ready: ${walletPaymentRequest.format}` : 'Wallet is not ready'}</p>
+              <p className="mt-1 text-xs opacity-80">
+                {walletPaymentRequest.valid
+                  ? row.__source_table === 'tax_wallet_addresses'
+                    ? 'The tax QR contains the exact wallet address entered below.'
+                    : 'The QR uses this wallet record’s stored asset and network automatically.'
+                  : walletPaymentRequest.error}
+              </p>
+            </div>
           </div>
+          {walletPaymentRequest.valid ? (
+            <div className="w-fit rounded-xl border border-[#006446]/14 bg-white p-2 shadow-sm">
+              <QRCode data={walletPaymentRequest.payload} size={112} />
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -3004,6 +3019,30 @@ function RecordFormCard({
                   className="w-full rounded-xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
                 />
                 <span className="block text-xs text-slate-500">Saved using your local date and time.</span>
+              </label>
+            );
+          }
+
+          if (isWalletRecord && key === 'wallet_address') {
+            return (
+              <label key={key} htmlFor={inputId} className="space-y-2 md:col-span-2">
+                <span className="text-sm font-medium text-slate-700">
+                  {row.__source_table === 'tax_wallet_addresses' ? 'Tax wallet address' : 'Receiving wallet address'}
+                </span>
+                <input
+                  id={inputId}
+                  value={String(form[key] ?? '')}
+                  onChange={(event) => setForm((prev) => ({ ...prev, [key]: event.target.value }))}
+                  placeholder="Paste the real receiving wallet address"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="w-full rounded-xl border border-[#006446]/14 bg-white px-4 py-3 font-mono text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
+                />
+                <span className="block text-xs text-slate-500">
+                  {row.__source_table === 'tax_wallet_addresses'
+                    ? 'The tax QR will contain this exact address.'
+                    : 'Asset, network, and QR format are taken automatically from this wallet record.'}
+                </span>
               </label>
             );
           }
@@ -4267,14 +4306,27 @@ function WalletCreateCard({
   onCancel: () => void;
 }) {
   const isCryptoSource = source === 'crypto_wallets';
+  const visibleFields = isCryptoSource
+    ? fields
+    : fields.filter((field) => field.key === 'wallet_address');
+  const taxWalletAddress = fields.find((field) => field.key === 'wallet_address')?.value.trim() || '';
+  const taxPaymentRequest = !isCryptoSource
+    ? getCryptoPaymentRequest({ wallet_address: taxWalletAddress })
+    : null;
+
+  const getWalletFieldMeta = (key: string) => {
+    if (key === 'wallet_address') return { label: isCryptoSource ? 'Receiving wallet address' : 'Tax wallet address', placeholder: 'Paste the real custody wallet address', help: isCryptoSource ? 'The QR uses this crypto record’s stored asset and network.' : 'The QR will contain this exact address. No other tax-wallet fields are needed.', required: true };
+    if (key === 'payment_uri') return { label: 'Payment URI', placeholder: 'Optional — leave blank to generate automatically', help: 'Only use a provider-supplied URI for a token/network-specific payment request.', required: false };
+    return { label: toSentenceCase(key), placeholder: 'Value', help: '', required: false };
+  };
 
   return (
     <div className="border border-[#006446]/14 bg-white shadow-[0_24px_60px_-48px_rgba(0,100,70,0.45)]">
       <div className="flex flex-col gap-3 border-b border-[#006446]/10 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#006446]">New Wallet</p>
-          <h3 className="mt-1 text-xl font-serif font-bold text-slate-950">Add {isCryptoSource ? 'a crypto' : 'a tax'} wallet</h3>
-          <p className="mt-1 text-sm text-slate-500">Choose which wallet table to write to, then fill the fields below.</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#006446]">Wallet setup</p>
+          <h3 className="mt-1 text-xl font-serif font-bold text-slate-950">Configure {isCryptoSource ? 'a crypto' : 'the tax payment'} wallet</h3>
+          <p className="mt-1 text-sm text-slate-500">The address must be a real receiving address controlled by your custody provider.</p>
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
@@ -4287,14 +4339,16 @@ function WalletCreateCard({
             Cancel
           </button>
 
-          <button
-            type="button"
-            onClick={onAddField}
-            className="inline-flex items-center justify-center gap-2 rounded-full border border-[#006446]/12 px-4 py-2 text-sm font-medium text-[#006446] transition-colors hover:bg-[#006446]/[0.05]"
-          >
-            <Plus className="h-4 w-4" />
-            Add field
-          </button>
+          {isCryptoSource ? (
+            <button
+              type="button"
+              onClick={onAddField}
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-[#006446]/12 px-4 py-2 text-sm font-medium text-[#006446] transition-colors hover:bg-[#006446]/[0.05]"
+            >
+              <Plus className="h-4 w-4" />
+              Add field
+            </button>
+          ) : null}
 
           <button
             type="button"
@@ -4312,7 +4366,7 @@ function WalletCreateCard({
             className="inline-flex items-center justify-center gap-2 rounded-full bg-[#006446] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#004d36] disabled:cursor-not-allowed disabled:opacity-70"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            Create wallet
+            Save wallet
           </button>
         </div>
       </div>
@@ -4342,37 +4396,72 @@ function WalletCreateCard({
               : 'Creates a row in `tax_wallet_addresses`.'}
           </p>
           <p className="mt-2 text-xs leading-relaxed text-slate-500">
-            Enter the real custody address plus its asset symbol and network. The customer QR is generated automatically. Use `payment_uri` only when a token or network requires an exact provider-supplied payment URI.
+            {isCryptoSource
+              ? 'Choose the crypto record details, then enter its real custody address. Existing crypto wallets only require address changes.'
+              : 'Paste one real receiving address. The tax page will generate a QR containing exactly that address.'}
           </p>
         </div>
 
-        <div className="space-y-3">
-          {fields.map((field) => (
-            <div key={field.id} className="grid gap-3 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)_auto]">
-              <input
-                value={field.key}
-                onChange={(event) => onFieldChange(field.id, { key: event.target.value })}
-                placeholder="Field name"
-                className="w-full rounded-xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
-              />
-              <input
-                value={field.value}
-                onChange={(event) => onFieldChange(field.id, { value: event.target.value })}
-                placeholder="Value"
-                className="w-full rounded-xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
-              />
-              <button
-                type="button"
-                onClick={() => onRemoveField(field.id)}
-                disabled={fields.length === 1}
-                className="inline-flex items-center justify-center rounded-xl border border-red-200 bg-white px-4 py-3 text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-                title="Remove field"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+        {taxPaymentRequest?.valid ? (
+          <div className="flex flex-col gap-4 rounded-2xl border border-[#006446]/14 bg-[#006446]/[0.04] p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-[#006446]">Tax QR ready</p>
+              <p className="mt-1 text-xs text-[#006446]/75">This QR encodes the exact wallet address. It will update while you type.</p>
             </div>
-          ))}
-          <p className="text-xs text-slate-500">Numbers, `true`, `false`, and `null` are converted automatically.</p>
+            <div className="w-fit rounded-xl border border-[#006446]/14 bg-white p-2 shadow-sm">
+              <QRCode data={taxPaymentRequest.payload} size={112} />
+            </div>
+          </div>
+        ) : null}
+
+        <div className="space-y-3">
+          {visibleFields.map((field) => {
+            const meta = getWalletFieldMeta(field.key);
+            const lockFieldName = !isCryptoSource && field.key === 'wallet_address';
+
+            return (
+              <div key={field.id} className="grid gap-3 rounded-2xl border border-slate-100 p-3 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)_auto] md:items-start">
+                <div>
+                  {lockFieldName ? (
+                    <div className="rounded-xl border border-[#006446]/10 bg-[#006446]/[0.03] px-4 py-3 text-sm font-medium text-slate-800">
+                      {meta.label}{meta.required ? <span className="ml-1 text-red-500">*</span> : null}
+                    </div>
+                  ) : (
+                    <input
+                      value={field.key}
+                      onChange={(event) => onFieldChange(field.id, { key: event.target.value })}
+                      placeholder="Field name"
+                      className="w-full rounded-xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
+                    />
+                  )}
+                  {meta.help ? <p className="mt-1.5 px-1 text-[11px] leading-relaxed text-slate-500">{meta.help}</p> : null}
+                </div>
+                <input
+                  value={field.value}
+                  aria-required={meta.required}
+                  onChange={(event) => onFieldChange(field.id, { value: event.target.value })}
+                  placeholder={meta.placeholder}
+                  className="w-full rounded-xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all read-only:cursor-not-allowed read-only:bg-slate-50 read-only:text-slate-500 focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
+                />
+                {isCryptoSource || !lockFieldName ? (
+                  <button
+                    type="button"
+                    onClick={() => onRemoveField(field.id)}
+                    disabled={fields.length === 1}
+                    className="inline-flex items-center justify-center rounded-xl border border-red-200 bg-white px-4 py-3 text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    title="Remove field"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                ) : <span className="hidden w-[50px] md:block" />}
+              </div>
+            );
+          })}
+          <p className="text-xs text-slate-500">
+            {isCryptoSource
+              ? 'The payment URI is optional; the QR generator derives the standard payload from the asset, network, and address.'
+              : 'Only the tax wallet address is saved from this form. The QR is generated automatically.'}
+          </p>
         </div>
       </div>
     </div>
@@ -5453,6 +5542,13 @@ export default function CrmAdmin() {
         payload[field.key.trim()] = parseDraftValue(field.value);
       });
 
+      if (newWalletSource === 'tax_wallet_addresses') {
+        payload.label = 'Tax Payment Wallet';
+        payload.symbol = '';
+        payload.network = '';
+        payload.payment_uri = '';
+      }
+
       Object.assign(payload, normalizeWalletAdminPayload(payload));
 
       if (sourceConfig.scope === 'user' && sourceConfig.filterColumn && selectedUserId) {
@@ -5462,6 +5558,18 @@ export default function CrmAdmin() {
       delete payload.id;
       delete payload.created_at;
       delete payload.updated_at;
+
+      if (newWalletSource === 'crypto_wallets' && !String(payload.symbol || '').trim()) {
+        setNotice({ kind: 'error', message: 'Enter the cryptocurrency symbol for this wallet.' });
+        setSavingNewRecord(false);
+        return;
+      }
+
+      if (newWalletSource === 'crypto_wallets' && !String(payload.network || '').trim()) {
+        setNotice({ kind: 'error', message: 'Enter the exact blockchain network for this wallet.' });
+        setSavingNewRecord(false);
+        return;
+      }
 
       const paymentRequest = getCryptoPaymentRequest({
         wallet_address: String(payload.wallet_address || ''),
@@ -5475,18 +5583,32 @@ export default function CrmAdmin() {
         return;
       }
 
-      const { data, error } = await insertAdminRow(sourceConfig.name, payload);
+      const existingTaxWallet = newWalletSource === 'tax_wallet_addresses'
+        ? (tableData.tax_wallet_addresses || [])[0]
+        : null;
+      const saveResult = existingTaxWallet
+        ? await updateAdminRow(sourceConfig.name, String(existingTaxWallet.id), (() => {
+            const updatePayload = { ...payload };
+            delete updatePayload.user_id;
+            return updatePayload;
+          })())
+        : await insertAdminRow(sourceConfig.name, payload);
+      const { data, error } = saveResult;
 
       if (error) {
         setNotice({ kind: 'error', message: error.message });
       } else if (data) {
         setTableData((prev) => ({
           ...prev,
-          [sourceConfig.name]: [data as AdminRow, ...(prev[sourceConfig.name] || [])],
+          [sourceConfig.name]: existingTaxWallet
+            ? (prev[sourceConfig.name] || []).map((row) => row.id === existingTaxWallet.id ? data as AdminRow : row)
+            : [data as AdminRow, ...(prev[sourceConfig.name] || [])],
         }));
         setNotice({
           kind: 'success',
-          message: `${newWalletSource === 'crypto_wallets' ? 'Crypto' : 'Tax'} wallet created.`,
+          message: newWalletSource === 'crypto_wallets'
+            ? 'Crypto wallet created.'
+            : 'Tax payment wallet configured.',
         });
         setNewRecordFields(toDraftFields(sourceConfig, selectedUserId, data as AdminRow));
         setIsAddingRecord(false);
@@ -6809,6 +6931,12 @@ export default function CrmAdmin() {
     }
 
     const sanitized = normalizeWalletAdminPayload(sanitizePayload(editedRow));
+    sanitized.payment_uri = '';
+    if (row.__source_table === 'tax_wallet_addresses') {
+      sanitized.label = 'Tax Payment Wallet';
+      sanitized.symbol = '';
+      sanitized.network = '';
+    }
     const paymentRequest = getCryptoPaymentRequest({
       wallet_address: String(sanitized.wallet_address || ''),
       symbol: String(sanitized.symbol || ''),
