@@ -2011,7 +2011,9 @@ function ProfileSummaryCard({
   const canEditRole = viewerRole === 'admin';
   const canEditManagerAssignment = viewerRole === 'admin';
   const canEditAgentAssignment = viewerRole === 'admin' || viewerRole === 'superior_manager';
-  const canEditAccountDate = viewerRole === 'admin';
+  const canEditAccountDate = viewerRole === 'admin'
+    || viewerRole === 'superior_manager'
+    || viewerRole === 'agent';
   const currentFormRole = normalizeCrmRole(form.crm_role, profile.crm_role);
   const accountDateIsValid = Boolean(accountDateInputToIso(form.account_created_date));
 
@@ -2244,9 +2246,9 @@ function ProfileSummaryCard({
                   </label>
                 </div>
 
-                {!canEditAccountDate && (
-                  <p className="text-xs text-slate-500">Only CRM administrators can change account date settings.</p>
-                )}
+                <p className="text-xs text-slate-500">
+                  CRM staff can change these settings only for profiles inside their assigned scope.
+                </p>
               </div>
 
               <div className="space-y-2">
