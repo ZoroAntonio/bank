@@ -173,6 +173,8 @@ type ProfileSavePayload = {
   assigned_manager_id: string | null;
   assigned_agent_id: string | null;
   password: string;
+  account_created_date: string;
+  show_account_created_at: boolean;
 };
 
 type NewUserDraft = {
@@ -224,6 +226,14 @@ function accountDateInputToIso(date: string) {
   const parsedDate = new Date(`${date}T12:00:00.000Z`);
   if (Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== date) return null;
   return parsedDate.toISOString();
+}
+
+function accountDateIsoToInputValue(value: string) {
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) return getTodayDateInputValue();
+
+  const offsetMilliseconds = parsedDate.getTimezoneOffset() * 60_000;
+  return new Date(parsedDate.getTime() - offsetMilliseconds).toISOString().slice(0, 10);
 }
 
 function waitForProfileTrigger(delayMs = 200) {
@@ -1337,6 +1347,8 @@ export function ProfileEditorCard({
     assigned_manager_id: profile.assigned_manager_id || '',
     assigned_agent_id: profile.assigned_agent_id || '',
     password: profile.plain_password || '',
+    account_created_date: accountDateIsoToInputValue(profile.created_at),
+    show_account_created_at: profile.show_account_created_at !== false,
   });
 
   useEffect(() => {
@@ -1349,6 +1361,8 @@ export function ProfileEditorCard({
       assigned_manager_id: profile.assigned_manager_id || '',
       assigned_agent_id: profile.assigned_agent_id || '',
       password: '',
+      account_created_date: accountDateIsoToInputValue(profile.created_at),
+      show_account_created_at: profile.show_account_created_at !== false,
     });
   }, [profile]);
 
@@ -1961,6 +1975,8 @@ function ProfileSummaryCard({
     assigned_manager_id: profile.assigned_manager_id || '',
     assigned_agent_id: profile.assigned_agent_id || '',
     password: '',
+    account_created_date: accountDateIsoToInputValue(profile.created_at),
+    show_account_created_at: profile.show_account_created_at !== false,
   });
   const profileMap = useMemo(() => new Map(profiles.map((entry) => [entry.id, entry])), [profiles]);
   const roleOptions = useMemo(
@@ -1995,7 +2011,9 @@ function ProfileSummaryCard({
   const canEditRole = viewerRole === 'admin';
   const canEditManagerAssignment = viewerRole === 'admin';
   const canEditAgentAssignment = viewerRole === 'admin' || viewerRole === 'superior_manager';
+  const canEditAccountDate = viewerRole === 'admin';
   const currentFormRole = normalizeCrmRole(form.crm_role, profile.crm_role);
+  const accountDateIsValid = Boolean(accountDateInputToIso(form.account_created_date));
 
   const resetForm = () => {
     setForm({
@@ -2007,6 +2025,8 @@ function ProfileSummaryCard({
       assigned_manager_id: profile.assigned_manager_id || '',
       assigned_agent_id: profile.assigned_agent_id || '',
       password: profile.plain_password || '',
+      account_created_date: accountDateIsoToInputValue(profile.created_at),
+      show_account_created_at: profile.show_account_created_at !== false,
     });
   };
 
@@ -2020,6 +2040,8 @@ function ProfileSummaryCard({
       assigned_manager_id: profile.assigned_manager_id || '',
       assigned_agent_id: profile.assigned_agent_id || '',
       password: profile.plain_password || '',
+      account_created_date: accountDateIsoToInputValue(profile.created_at),
+      show_account_created_at: profile.show_account_created_at !== false,
     });
   }, [profile]);
 
@@ -2183,6 +2205,50 @@ function ProfileSummaryCard({
                 <p className="text-xs text-slate-500">Changing this updates both Supabase Auth and `profiles.plain_password`.</p>
               </label>
 
+              <div className="space-y-4 rounded-2xl border border-[#006446]/12 bg-[#006446]/[0.03] px-4 py-4 md:col-span-2">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#006446]">Client account date</p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Change the profile creation date and control whether it appears on the client profile.
+                  </p>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="space-y-2">
+                    <span className="text-sm font-medium text-slate-700">Profile created date</span>
+                    <input
+                      type="date"
+                      value={form.account_created_date}
+                      onChange={(event) => setForm((prev) => ({ ...prev, account_created_date: event.target.value }))}
+                      disabled={!canEditAccountDate || saving}
+                      required
+                      className="w-full rounded-xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+                    />
+                    {!accountDateIsValid && (
+                      <p className="text-xs font-medium text-red-600">Choose a valid profile creation date.</p>
+                    )}
+                  </label>
+
+                  <label className="flex items-start gap-3 rounded-xl border border-[#006446]/10 bg-white px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={!form.show_account_created_at}
+                      onChange={(event) => setForm((prev) => ({ ...prev, show_account_created_at: !event.target.checked }))}
+                      disabled={!canEditAccountDate || saving}
+                      className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-[#006446] disabled:cursor-not-allowed"
+                    />
+                    <span>
+                      <span className="block text-sm font-semibold text-slate-800">Hide date from client</span>
+                      <span className="mt-1 block text-xs text-slate-500">Removes “Member since” from the client profile card.</span>
+                    </span>
+                  </label>
+                </div>
+
+                {!canEditAccountDate && (
+                  <p className="text-xs text-slate-500">Only CRM administrators can change account date settings.</p>
+                )}
+              </div>
+
               <div className="space-y-2">
                 <span className="text-sm font-medium text-slate-700">Role</span>
                 {canEditRole ? (
@@ -2292,7 +2358,7 @@ function ProfileSummaryCard({
                     assigned_manager_id: form.assigned_manager_id || null,
                     assigned_agent_id: form.assigned_agent_id || null,
                   })}
-                  disabled={saving}
+                  disabled={saving || !accountDateIsValid}
                   className="inline-flex items-center justify-center gap-2 rounded-full bg-[#006446] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#004d36] disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -6331,6 +6397,12 @@ export default function CrmAdmin() {
   async function handleProfileSave(updates: ProfileSavePayload) {
     if (!selectedProfile) return;
 
+    const accountCreatedAt = accountDateInputToIso(updates.account_created_date);
+    if (!accountCreatedAt) {
+      setNotice({ kind: 'error', message: 'Choose a valid profile creation date.' });
+      return;
+    }
+
     setSavingProfile(true);
     setNotice(null);
 
@@ -6416,7 +6488,9 @@ export default function CrmAdmin() {
       }
     }
 
-    const payload = {
+    const accountDateChanged = updates.account_created_date !== accountDateIsoToInputValue(selectedProfile.created_at);
+    const accountDateVisibilityChanged = updates.show_account_created_at !== (selectedProfile.show_account_created_at !== false);
+    const payload: Record<string, unknown> = {
       full_name: updates.full_name,
       email: updates.email,
       account_iban: updates.account_iban.trim(),
@@ -6427,6 +6501,8 @@ export default function CrmAdmin() {
       assigned_agent_id: updates.assigned_agent_id,
       plain_password: passwordChanged ? nextPassword : selectedProfile.plain_password,
       updated_at: new Date().toISOString(),
+      ...(accountDateChanged ? { created_at: accountCreatedAt } : {}),
+      ...(accountDateVisibilityChanged ? { show_account_created_at: updates.show_account_created_at } : {}),
     };
 
     const { data, error } = await supabase
