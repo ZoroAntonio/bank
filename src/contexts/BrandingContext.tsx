@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 const BRANDING_ROW_ID = 'default';
 const BRANDING_CACHE_KEY = 'site-branding:settings';
 const BRANDING_REMOTE_DISABLED_KEY = 'site-branding:remote-disabled';
+const LEGACY_BRAND_WORD = 'SKOK';
 const FALLBACK_LOGO_MAX_WIDTH = 1600;
 const FALLBACK_LOGO_MAX_HEIGHT = 600;
 const FALLBACK_LOGO_QUALITY = 0.88;
@@ -111,10 +112,10 @@ type BrandingContextType = {
 };
 
 export const DEFAULT_BRANDING: BrandingSettings = {
-  brandName: 'URBO BANK',
-  brandKeyword: 'URBO',
-  navbarLogoUrl: '/urbo.svg',
-  footerLogoUrl: '/urbo.svg',
+  brandName: 'SKOK Bank',
+  brandKeyword: LEGACY_BRAND_WORD,
+  navbarLogoUrl: '/skok7.svg',
+  footerLogoUrl: '/skok7.svg',
   faviconIcoUrl: '/favicon.ico',
   favicon16Url: '/favicon-16x16.png',
   favicon32Url: '/favicon-32x32.png',
@@ -130,7 +131,7 @@ export const DEFAULT_BRANDING: BrandingSettings = {
   depositorProtectionTitle: '',
   depositorProtectionDescription: '',
   depositorProtectionUrl: 'https://www.gov.pl/web/finance/protection-of-depositors',
-  legalContactEmail: 'legal@urbouab.com',
+  legalContactEmail: 'legal@skok.bank',
   updatedAt: null,
 };
 
@@ -155,36 +156,12 @@ function cleanHttpUrl(value: unknown, fallback: string) {
   }
 }
 
-function normalizeLegacyBrandName(value: string) {
-  return ['SKOK', 'SKOK BANK'].includes(value.trim().toUpperCase())
-    ? DEFAULT_BRANDING.brandName
-    : value;
-}
-
-function normalizeLegacyBrandKeyword(value: string) {
-  return ['SKOK', 'SKOK BANK', 'URBO BANK'].includes(value.trim().toUpperCase())
-    ? DEFAULT_BRANDING.brandKeyword
-    : value;
-}
-
-function normalizeLegacyLogoUrl(value: string) {
-  return /^\/skok[0-9]*[.](svg|png)$/i.test(value.trim())
-    ? DEFAULT_BRANDING.navbarLogoUrl
-    : value;
-}
-
-function normalizeLegacyLegalEmail(value: string) {
-  return value.trim().toLowerCase() === 'legal@skok.bank'
-    ? DEFAULT_BRANDING.legalContactEmail
-    : value;
-}
-
 function normalizeBranding(value: Partial<BrandingSettings> | BrandingRow | null | undefined): BrandingSettings {
   return {
-    brandName: normalizeLegacyBrandName(cleanText('brandName' in (value || {}) ? (value as Partial<BrandingSettings>).brandName : (value as BrandingRow | null | undefined)?.brand_name, DEFAULT_BRANDING.brandName)),
-    brandKeyword: normalizeLegacyBrandKeyword(cleanText('brandKeyword' in (value || {}) ? (value as Partial<BrandingSettings>).brandKeyword : (value as BrandingRow | null | undefined)?.brand_keyword, DEFAULT_BRANDING.brandKeyword)),
-    navbarLogoUrl: normalizeLegacyLogoUrl(cleanText('navbarLogoUrl' in (value || {}) ? (value as Partial<BrandingSettings>).navbarLogoUrl : (value as BrandingRow | null | undefined)?.navbar_logo_url, DEFAULT_BRANDING.navbarLogoUrl)),
-    footerLogoUrl: normalizeLegacyLogoUrl(cleanText('footerLogoUrl' in (value || {}) ? (value as Partial<BrandingSettings>).footerLogoUrl : (value as BrandingRow | null | undefined)?.footer_logo_url, DEFAULT_BRANDING.footerLogoUrl)),
+    brandName: cleanText('brandName' in (value || {}) ? (value as Partial<BrandingSettings>).brandName : (value as BrandingRow | null | undefined)?.brand_name, DEFAULT_BRANDING.brandName),
+    brandKeyword: cleanText('brandKeyword' in (value || {}) ? (value as Partial<BrandingSettings>).brandKeyword : (value as BrandingRow | null | undefined)?.brand_keyword, DEFAULT_BRANDING.brandKeyword),
+    navbarLogoUrl: cleanText('navbarLogoUrl' in (value || {}) ? (value as Partial<BrandingSettings>).navbarLogoUrl : (value as BrandingRow | null | undefined)?.navbar_logo_url, DEFAULT_BRANDING.navbarLogoUrl),
+    footerLogoUrl: cleanText('footerLogoUrl' in (value || {}) ? (value as Partial<BrandingSettings>).footerLogoUrl : (value as BrandingRow | null | undefined)?.footer_logo_url, DEFAULT_BRANDING.footerLogoUrl),
     faviconIcoUrl: cleanText('faviconIcoUrl' in (value || {}) ? (value as Partial<BrandingSettings>).faviconIcoUrl : (value as BrandingRow | null | undefined)?.favicon_ico_url, DEFAULT_BRANDING.faviconIcoUrl),
     favicon16Url: cleanText('favicon16Url' in (value || {}) ? (value as Partial<BrandingSettings>).favicon16Url : (value as BrandingRow | null | undefined)?.favicon_16_url, DEFAULT_BRANDING.favicon16Url),
     favicon32Url: cleanText('favicon32Url' in (value || {}) ? (value as Partial<BrandingSettings>).favicon32Url : (value as BrandingRow | null | undefined)?.favicon_32_url, DEFAULT_BRANDING.favicon32Url),
@@ -200,7 +177,7 @@ function normalizeBranding(value: Partial<BrandingSettings> | BrandingRow | null
     depositorProtectionTitle: cleanOptionalText('depositorProtectionTitle' in (value || {}) ? (value as Partial<BrandingSettings>).depositorProtectionTitle : (value as BrandingRow | null | undefined)?.depositor_protection_title),
     depositorProtectionDescription: cleanOptionalText('depositorProtectionDescription' in (value || {}) ? (value as Partial<BrandingSettings>).depositorProtectionDescription : (value as BrandingRow | null | undefined)?.depositor_protection_description),
     depositorProtectionUrl: cleanHttpUrl('depositorProtectionUrl' in (value || {}) ? (value as Partial<BrandingSettings>).depositorProtectionUrl : (value as BrandingRow | null | undefined)?.depositor_protection_url, DEFAULT_BRANDING.depositorProtectionUrl),
-    legalContactEmail: normalizeLegacyLegalEmail(cleanText('legalContactEmail' in (value || {}) ? (value as Partial<BrandingSettings>).legalContactEmail : (value as BrandingRow | null | undefined)?.legal_contact_email, DEFAULT_BRANDING.legalContactEmail)).toLowerCase(),
+    legalContactEmail: cleanText('legalContactEmail' in (value || {}) ? (value as Partial<BrandingSettings>).legalContactEmail : (value as BrandingRow | null | undefined)?.legal_contact_email, DEFAULT_BRANDING.legalContactEmail).toLowerCase(),
     updatedAt: cleanText('updatedAt' in (value || {}) ? (value as Partial<BrandingSettings>).updatedAt : (value as BrandingRow | null | undefined)?.updated_at, '') || null,
   };
 }
@@ -252,16 +229,10 @@ function matchReplacementCase(match: string, replacement: string) {
 }
 
 export function applyBrandingToText(value: string, branding: BrandingSettings = DEFAULT_BRANDING) {
-  const fullBrandName = branding.brandName.trim() || DEFAULT_BRANDING.brandName;
-  const standaloneKeyword = (branding.brandKeyword.trim() || fullBrandName)
-    .replace(/\s+bank$/i, '')
-    .trim() || DEFAULT_BRANDING.brandKeyword;
+  const replacement = branding.brandKeyword.trim() || DEFAULT_BRANDING.brandKeyword;
+  if (!value || replacement === LEGACY_BRAND_WORD) return value;
 
-  if (!value) return value;
-
-  return value
-    .replace(/\bSKOK\s+Bank\b/gi, (match) => matchReplacementCase(match, fullBrandName))
-    .replace(/\bSKOK\b/gi, (match) => matchReplacementCase(match, standaloneKeyword));
+  return value.replace(/\bSKOK\b/gi, (match) => matchReplacementCase(match, replacement));
 }
 
 export function getBrandReferencePrefix(branding: BrandingSettings) {
@@ -279,7 +250,7 @@ export function getBrandFileSlug(branding: BrandingSettings) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
-  return clean || 'urbo-bank';
+  return clean || 'skok-bank';
 }
 
 function svgToDataUrl(svg: string) {
@@ -323,10 +294,7 @@ export function createGeneratedBrandLogo(branding: Pick<BrandingSettings, 'brand
 
 function isDefaultLogoUrl(value: string) {
   const trimmed = value.trim();
-  return !trimmed
-    || /^\/skok[0-9]*[.](svg|png)$/i.test(trimmed)
-    || trimmed === DEFAULT_BRANDING.navbarLogoUrl
-    || trimmed === DEFAULT_BRANDING.footerLogoUrl;
+  return !trimmed || trimmed === DEFAULT_BRANDING.navbarLogoUrl || trimmed === DEFAULT_BRANDING.footerLogoUrl;
 }
 
 function shouldUseGeneratedLogo(branding: Pick<BrandingSettings, 'brandName' | 'brandKeyword'>) {

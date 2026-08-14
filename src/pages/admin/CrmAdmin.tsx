@@ -36,6 +36,7 @@ import IpWhitelistCard from '../../components/admin/IpWhitelistCard';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   DEFAULT_BRANDING,
+  applyBrandingToText,
   getBrandReferencePrefix,
   type BrandingSettings,
   type BrandingUpdate,
@@ -2569,7 +2570,7 @@ function BrandingSettingsCard({
             </label>
 
             <label className="space-y-2">
-              <span className="text-sm font-medium text-slate-700">Legacy brand replacement</span>
+              <span className="text-sm font-medium text-slate-700">Replacement for SKOK</span>
               <input
                 value={form.brandKeyword}
                 onChange={(event) => onFieldChange('brandKeyword', event.target.value)}
@@ -2598,7 +2599,7 @@ function BrandingSettingsCard({
               <input
                 value={form.navbarLogoUrl}
                 onChange={(event) => onFieldChange('navbarLogoUrl', event.target.value)}
-                placeholder="/urbo.svg or https://..."
+                placeholder="/skok7.svg or https://..."
                 className="w-full rounded-2xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
               />
             </label>
@@ -2612,7 +2613,7 @@ function BrandingSettingsCard({
                 <input
                   value={form.footerLogoUrl}
                   onChange={(event) => onFieldChange('footerLogoUrl', event.target.value)}
-                  placeholder="/urbo.svg or https://..."
+                  placeholder="/skok7.svg or https://..."
                   className="w-full rounded-2xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
                 />
               </label>
@@ -2820,11 +2821,11 @@ function BrandingSettingsCard({
             <div className="mt-4 space-y-3 text-sm">
               <div className="rounded-2xl bg-slate-50 px-4 py-3">
                 <p className="text-xs text-slate-500">Website label</p>
-                <p className="mt-1 font-semibold text-slate-900">Why {previewBranding.brandKeyword}</p>
+                <p className="mt-1 font-semibold text-slate-900">{applyBrandingToText('Why SKOK', previewBranding)}</p>
               </div>
               <div className="rounded-2xl bg-slate-50 px-4 py-3">
                 <p className="text-xs text-slate-500">Legal text</p>
-                <p className="mt-1 font-semibold text-slate-900">{previewBranding.brandName} Wealth Management</p>
+                <p className="mt-1 font-semibold text-slate-900">{applyBrandingToText('SKOK Bank Wealth Management', previewBranding)}</p>
               </div>
               <div className="rounded-2xl bg-slate-50 px-4 py-3">
                 <p className="text-xs text-slate-500">Invoice prefix</p>

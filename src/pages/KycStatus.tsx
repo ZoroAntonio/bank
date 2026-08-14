@@ -1,12 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { Clock, Shield, CheckCircle, XCircle, LogOut, RefreshCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { useBranding } from '../contexts/BrandingContext';
-import BrandLogo from '../components/ui/BrandLogo';
 
 export default function KycStatus() {
   const { kycStatus, signOut, refreshKycStatus, user } = useAuth();
-  const { branding } = useBranding();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -61,14 +58,12 @@ export default function KycStatus() {
       <div className="bg-[#006446] px-4 py-6">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div className="flex flex-col items-start">
-            <div className="flex h-11 max-w-[190px] items-center rounded-xl bg-white px-3 shadow-sm">
-              <BrandLogo
-                src={branding.navbarLogoUrl}
-                alt={branding.brandName}
-                className="h-8 max-w-full object-contain"
-              />
-            </div>
-            <p className="mt-1 pl-3 text-[10px] tracking-widest text-white/65">ACCOUNT STATUS</p>
+            <img
+              src="/skok1.svg"
+              alt="SKOK Bank"
+              className="h-8 w-auto max-w-[150px] flex-shrink-0"
+            />
+            <p className="pl-10 text-[10px] tracking-widest text-white/65">ACCOUNT STATUS</p>
           </div>
           <button
             onClick={handleSignOut}
