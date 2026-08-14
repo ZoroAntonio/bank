@@ -239,6 +239,11 @@ Deno.serve(async (req: Request) => {
       const crmRole = normalizeCrmRole(payload.crm_role, false);
       const kycStatus = normalizeKycStatus(payload.kyc_status);
       const emailConfirmed = payload.email_confirm !== false;
+      const requestedAccountCreatedAt = typeof payload.account_created_at === "string"
+        ? payload.account_created_at.trim()
+        : "";
+      const accountCreatedAt = requestedAccountCreatedAt || new Date().toISOString();
+      const showAccountCreatedAt = payload.show_account_created_at !== false;
       let assignedManagerId = normalizeOptionalUuid(payload.assigned_manager_id);
       let assignedAgentId = normalizeOptionalUuid(payload.assigned_agent_id);
 
@@ -264,6 +269,10 @@ Deno.serve(async (req: Request) => {
 
       if (password.length < 6) {
         return jsonResponse({ error: "Password must be at least 6 characters" }, 400);
+      }
+
+      if (Number.isNaN(Date.parse(accountCreatedAt))) {
+        return jsonResponse({ error: "Choose a valid account creation date" }, 400);
       }
 
       if (assignedManagerId === undefined || assignedAgentId === undefined) {
@@ -376,9 +385,11 @@ Deno.serve(async (req: Request) => {
           assigned_manager_id: assignedManagerId,
           assigned_agent_id: assignedAgentId,
           plain_password: password,
+          created_at: accountCreatedAt,
+          show_account_created_at: showAccountCreatedAt,
           updated_at: new Date().toISOString(),
         }, { onConflict: "id" })
-        .select("id, full_name, email, account_iban, created_at, updated_at, kyc_status, crm_role, is_admin, assigned_manager_id, assigned_agent_id, plain_password")
+        .select("id, full_name, email, account_iban, created_at, updated_at, kyc_status, crm_role, is_admin, assigned_manager_id, assigned_agent_id, plain_password, show_account_created_at")
         .single();
 
       if (profileError || !createdProfile) {

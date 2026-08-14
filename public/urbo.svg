@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="140" viewBox="0 0 520 140" role="img" aria-labelledby="title desc">
+  <title id="title">URBO BANK</title>
+  <desc id="desc">URBO BANK wordmark</desc>
+  <rect width="520" height="140" fill="none"/>
+  <g fill="#006446">
+    <path d="M25 27h45v54c0 18 10 27 28 27s28-9 28-27V27h45v57c0 43-26 63-73 63S25 127 25 84V27Z" transform="translate(0 -17) scale(.86)"/>
+    <path d="M24 10h54L51 28Z"/>
+    <text x="110" y="94" font-family="Arial, Helvetica, sans-serif" font-size="82" font-weight="800" letter-spacing="1">URBO</text>
+    <text x="348" y="94" font-family="Arial, Helvetica, sans-serif" font-size="40" font-weight="700" letter-spacing="3">BANK</text>
+  </g>
+</svg>

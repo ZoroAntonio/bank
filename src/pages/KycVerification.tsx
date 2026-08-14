@@ -10,7 +10,6 @@ import {
   Check,
   ChevronRight,
   ChevronLeft,
-  Building2,
   AlertCircle,
   X,
 } from 'lucide-react';
@@ -18,6 +17,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useBranding } from '../contexts/BrandingContext';
 import { supabase } from '../lib/supabase';
 import Dropdown from '../components/ui/Dropdown';
+import BrandLogo from '../components/ui/BrandLogo';
 
 const steps = ['Personal Info', 'Address', 'Identity Document', 'Selfie Verification'];
 
@@ -452,11 +452,14 @@ export default function KycVerification() {
     <div className="min-h-screen bg-[#006446]/[0.04]">
       <div className="bg-[#006446] py-6 px-4">
         <div className="max-w-3xl mx-auto flex items-center gap-3">
-          <Building2 className="w-8 h-8 text-white" strokeWidth={1.5} />
-          <div>
-            <h1 className="text-lg font-serif font-bold text-white">{branding.brandName}</h1>
-            <p className="text-[10px] tracking-widest text-white/65">IDENTITY VERIFICATION</p>
+          <div className="flex h-11 max-w-[190px] items-center rounded-xl bg-white px-3 shadow-sm">
+            <BrandLogo
+              src={branding.navbarLogoUrl}
+              alt={branding.brandName}
+              className="h-8 max-w-full object-contain"
+            />
           </div>
+          <p className="text-[10px] tracking-widest text-white/65">IDENTITY VERIFICATION</p>
         </div>
       </div>
 

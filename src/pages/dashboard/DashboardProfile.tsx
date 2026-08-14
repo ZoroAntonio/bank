@@ -37,6 +37,7 @@ export default function DashboardProfile() {
 
   const formatMemberSince = (date: string) => {
     return new Date(date).toLocaleDateString(LOCALE_MAP[language], {
+      day: 'numeric',
       month: 'long',
       year: 'numeric',
     });
@@ -147,15 +148,17 @@ export default function DashboardProfile() {
               {profile?.full_name || t('dashboardProfile.userFallback')}
             </h3>
             <p className="mt-1 text-sm text-[#006446]/70">{user?.email}</p>
-            <p className="mt-3 text-xs text-[#006446]/70">
-              {profile?.created_at
-                ? interpolate(t('dashboardProfile.memberSince'), {
-                    date: formatMemberSince(profile.created_at),
-                  })
-                : interpolate(t('dashboardProfile.memberSince'), {
-                    date: t('dashboardProfile.notAvailable'),
-                  })}
-            </p>
+            {profile?.show_account_created_at !== false && (
+              <p className="mt-3 text-xs text-[#006446]/70">
+                {profile?.created_at
+                  ? interpolate(t('dashboardProfile.memberSince'), {
+                      date: formatMemberSince(profile.created_at),
+                    })
+                  : interpolate(t('dashboardProfile.memberSince'), {
+                      date: t('dashboardProfile.notAvailable'),
+                    })}
+              </p>
+            )}
           </div>
 
           <div className="rounded-2xl border border-[#006446]/14 bg-[#006446] p-6 text-white shadow-[0_24px_60px_-48px_rgba(0,100,70,0.55)]">

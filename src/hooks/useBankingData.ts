@@ -20,6 +20,7 @@ export interface Profile {
   email: string;
   created_at: string;
   updated_at: string;
+  show_account_created_at: boolean;
 }
 
 export function useTransactions() {

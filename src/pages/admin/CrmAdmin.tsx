@@ -36,7 +36,6 @@ import IpWhitelistCard from '../../components/admin/IpWhitelistCard';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   DEFAULT_BRANDING,
-  applyBrandingToText,
   getBrandReferencePrefix,
   type BrandingSettings,
   type BrandingUpdate,
@@ -84,6 +83,7 @@ type ProfileRecord = {
   assigned_manager_id: string | null;
   assigned_agent_id: string | null;
   plain_password: string | null;
+  show_account_created_at: boolean;
 };
 
 type AdminRow = {
@@ -186,6 +186,8 @@ type NewUserDraft = {
   assigned_manager_id: string;
   assigned_agent_id: string;
   email_confirm: boolean;
+  account_created_date: string;
+  show_account_created_at: boolean;
 };
 
 type CreateUserResponse = {
@@ -208,7 +210,21 @@ type DeleteUserResponse = {
 type BrandingForm = BrandingUpdate;
 type DirectoryRoleFilter = 'all' | CrmRole;
 
-const PROFILE_RECORD_SELECT = 'id, full_name, email, account_iban, created_at, updated_at, kyc_status, crm_role, is_admin, assigned_manager_id, assigned_agent_id, plain_password';
+const PROFILE_RECORD_SELECT = 'id, full_name, email, account_iban, created_at, updated_at, kyc_status, crm_role, is_admin, assigned_manager_id, assigned_agent_id, plain_password, show_account_created_at';
+
+function getTodayDateInputValue() {
+  const now = new Date();
+  const offsetMilliseconds = now.getTimezoneOffset() * 60_000;
+  return new Date(now.getTime() - offsetMilliseconds).toISOString().slice(0, 10);
+}
+
+function accountDateInputToIso(date: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+
+  const parsedDate = new Date(`${date}T12:00:00.000Z`);
+  if (Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== date) return null;
+  return parsedDate.toISOString();
+}
 
 function waitForProfileTrigger(delayMs = 200) {
   return new Promise<void>((resolve) => window.setTimeout(resolve, delayMs));
@@ -1465,6 +1481,8 @@ function CreateUserDialog({
     assigned_manager_id: '',
     assigned_agent_id: '',
     email_confirm: true,
+    account_created_date: getTodayDateInputValue(),
+    show_account_created_at: true,
   });
   const [validationError, setValidationError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -1556,6 +1574,10 @@ function CreateUserDialog({
     }
     if (form.password !== form.confirm_password) {
       setValidationError('The password confirmation does not match.');
+      return;
+    }
+    if (!accountDateInputToIso(form.account_created_date)) {
+      setValidationError('Choose a valid account creation date.');
       return;
     }
 
@@ -1696,6 +1718,40 @@ function CreateUserDialog({
           <div className={`space-y-2 ${creating ? 'pointer-events-none opacity-60' : ''}`}>
             <span className="text-sm font-medium text-slate-700">CRM role</span>
             <Dropdown value={form.crm_role} options={roleOptions} onChange={handleRoleChange} />
+          </div>
+
+          <div className="space-y-4 rounded-2xl border border-[#006446]/12 bg-[#006446]/[0.03] px-4 py-4 md:col-span-2">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#006446]">Client account date</p>
+              <p className="mt-1 text-sm text-slate-500">Set the membership date and choose whether the client can see it.</p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="space-y-2">
+                <span className="text-sm font-medium text-slate-700">Account created date</span>
+                <input
+                  type="date"
+                  value={form.account_created_date}
+                  onChange={(event) => setForm((current) => ({ ...current, account_created_date: event.target.value }))}
+                  disabled={creating}
+                  required
+                  className="w-full rounded-xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15 disabled:bg-slate-50"
+                />
+              </label>
+
+              <label className="flex items-start gap-3 rounded-xl border border-[#006446]/10 bg-white px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={!form.show_account_created_at}
+                  onChange={(event) => setForm((current) => ({ ...current, show_account_created_at: !event.target.checked }))}
+                  disabled={creating}
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-[#006446]"
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-slate-800">Hide date from client</span>
+                  <span className="mt-1 block text-xs text-slate-500">Removes “Member since” from the client profile card.</span>
+                </span>
+              </label>
+            </div>
           </div>
 
           {(form.crm_role === 'customer' || form.crm_role === 'agent') && viewerRole !== 'agent' && (
@@ -2445,7 +2501,7 @@ function BrandingSettingsCard({
             </label>
 
             <label className="space-y-2">
-              <span className="text-sm font-medium text-slate-700">Replacement for SKOK</span>
+              <span className="text-sm font-medium text-slate-700">Legacy brand replacement</span>
               <input
                 value={form.brandKeyword}
                 onChange={(event) => onFieldChange('brandKeyword', event.target.value)}
@@ -2474,7 +2530,7 @@ function BrandingSettingsCard({
               <input
                 value={form.navbarLogoUrl}
                 onChange={(event) => onFieldChange('navbarLogoUrl', event.target.value)}
-                placeholder="/skok7.svg or https://..."
+                placeholder="/urbo.svg or https://..."
                 className="w-full rounded-2xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
               />
             </label>
@@ -2488,7 +2544,7 @@ function BrandingSettingsCard({
                 <input
                   value={form.footerLogoUrl}
                   onChange={(event) => onFieldChange('footerLogoUrl', event.target.value)}
-                  placeholder="/skok7.svg or https://..."
+                  placeholder="/urbo.svg or https://..."
                   className="w-full rounded-2xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
                 />
               </label>
@@ -2696,11 +2752,11 @@ function BrandingSettingsCard({
             <div className="mt-4 space-y-3 text-sm">
               <div className="rounded-2xl bg-slate-50 px-4 py-3">
                 <p className="text-xs text-slate-500">Website label</p>
-                <p className="mt-1 font-semibold text-slate-900">{applyBrandingToText('Why SKOK', previewBranding)}</p>
+                <p className="mt-1 font-semibold text-slate-900">Why {previewBranding.brandKeyword}</p>
               </div>
               <div className="rounded-2xl bg-slate-50 px-4 py-3">
                 <p className="text-xs text-slate-500">Legal text</p>
-                <p className="mt-1 font-semibold text-slate-900">{applyBrandingToText('SKOK Bank Wealth Management', previewBranding)}</p>
+                <p className="mt-1 font-semibold text-slate-900">{previewBranding.brandName} Wealth Management</p>
               </div>
               <div className="rounded-2xl bg-slate-50 px-4 py-3">
                 <p className="text-xs text-slate-500">Invoice prefix</p>
@@ -5992,6 +6048,11 @@ export default function CrmAdmin() {
       setNotice({ kind: 'error', message: 'The password confirmation does not match.' });
       return;
     }
+    const accountCreatedAt = accountDateInputToIso(draft.account_created_date);
+    if (!accountCreatedAt) {
+      setNotice({ kind: 'error', message: 'Choose a valid account creation date.' });
+      return;
+    }
 
     setCreatingUser(true);
     setCreateUserError('');
@@ -6037,6 +6098,8 @@ export default function CrmAdmin() {
             ? draft.assigned_agent_id || null
             : null,
         email_confirm: draft.email_confirm,
+        account_created_at: accountCreatedAt,
+        show_account_created_at: draft.show_account_created_at,
       };
       const runCreateRequest = (accessToken: string) =>
         fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-user-management`, {
@@ -6133,6 +6196,8 @@ export default function CrmAdmin() {
               : null,
           assigned_agent_id: draft.crm_role === 'customer' ? draft.assigned_agent_id || null : null,
           plain_password: draft.password,
+          created_at: accountCreatedAt,
+          show_account_created_at: draft.show_account_created_at,
           updated_at: new Date().toISOString(),
         };
         const { data: configuredProfile, error: configureError } = await supabase
