@@ -36,6 +36,7 @@ Deno.serve(async (req: Request) => {
     const email =
       typeof payload.email === "string" ? payload.email.trim().toLowerCase() : "";
     const password = typeof payload.password === "string" ? payload.password : "";
+    const loginPin = typeof payload.login_pin === "string" ? payload.login_pin : "";
     const fullName =
       typeof payload.full_name === "string" ? payload.full_name.trim() : "";
 
@@ -47,6 +48,10 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: "Password must be at least 6 characters" }, 400);
     }
 
+    if (!/^\d{4}$/.test(loginPin)) {
+      return jsonResponse({ error: "PIN must contain exactly 4 digits" }, 400);
+    }
+
     if (!fullName) {
       return jsonResponse({ error: "Full name is required" }, 400);
     }
@@ -55,7 +60,7 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const { error } = await adminClient.auth.admin.createUser({
+    const { data: createdAuthData, error } = await adminClient.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
@@ -65,6 +70,24 @@ Deno.serve(async (req: Request) => {
     if (error) {
       const status = error.message.toLowerCase().includes("already") ? 409 : 400;
       return jsonResponse({ error: error.message }, status);
+    }
+
+    const createdUser = createdAuthData.user;
+    if (!createdUser) {
+      return jsonResponse({ error: "Account creation did not return a user" }, 500);
+    }
+
+    const { error: pinError } = await adminClient.rpc("set_client_login_pin", {
+      p_user_id: createdUser.id,
+      p_pin: loginPin,
+    });
+
+    if (pinError) {
+      const { error: rollbackError } = await adminClient.auth.admin.deleteUser(createdUser.id, false);
+      return jsonResponse({
+        error: `Account PIN setup failed: ${pinError.message}`,
+        rollback_warning: rollbackError?.message ?? null,
+      }, 500);
     }
 
     return jsonResponse({ success: true }, 201);

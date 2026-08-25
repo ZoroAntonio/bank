@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Building2, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Building2, Eye, EyeOff, ArrowLeft, ArrowRight, KeyRound } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useBranding } from '../contexts/BrandingContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -12,13 +12,16 @@ export default function OnlineBanking() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [registrationPin, setRegistrationPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [pinEntry, setPinEntry] = useState('');
+  const [awaitingPin, setAwaitingPin] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const navigate = useNavigate();
-  const { signIn, signUp } = useAuth();
+  const { user, pinVerified, signIn, signUp, verifyPin, signOut } = useAuth();
   const { branding } = useBranding();
   const { language, t } = useLanguage();
 
@@ -85,6 +88,16 @@ export default function OnlineBanking() {
       return;
     }
 
+    if (mode === 'register' && !/^\d{4}$/.test(registrationPin)) {
+      setError(t('onlineBanking.errors.pinFormat'));
+      return;
+    }
+
+    if (mode === 'register' && registrationPin !== confirmPin) {
+      setError(t('onlineBanking.errors.pinMismatch'));
+      return;
+    }
+
     if (mode === 'register' && !acceptedTerms) {
       setError(t('onlineBanking.errors.termsRequired'));
       return;
@@ -98,9 +111,13 @@ export default function OnlineBanking() {
         if (error) {
           setError(localizeAuthError(error, 'login'));
           setLoading(false);
+        } else {
+          setPassword('');
+          setAwaitingPin(true);
+          setLoading(false);
         }
       } else {
-        const { error } = await signUp(email, password, fullName);
+        const { error } = await signUp(email, password, fullName, registrationPin);
         if (error) {
           setError(localizeAuthError(error, 'register'));
           setLoading(false);
@@ -117,7 +134,12 @@ export default function OnlineBanking() {
               })
               .eq('id', user.id);
           }
-          navigate('/kyc');
+          setMode('login');
+          setPassword('');
+          setRegistrationPin('');
+          setConfirmPin('');
+          setAwaitingPin(true);
+          setLoading(false);
         }
       }
     } catch {
@@ -125,6 +147,153 @@ export default function OnlineBanking() {
       setLoading(false);
     }
   };
+
+  const handlePinSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!/^\d{4}$/.test(pinEntry)) {
+      setError(t('onlineBanking.errors.pinFormat'));
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const result = await verifyPin(pinEntry);
+
+      if (result.error) {
+        setError(t('onlineBanking.errors.pinFailed'));
+      } else if (result.code === 'invalid') {
+        setError(t('onlineBanking.errors.invalidPin'));
+      } else if (result.code === 'locked') {
+        setError(t('onlineBanking.errors.pinLocked'));
+      } else if (result.code === 'not_set') {
+        setError(t('onlineBanking.errors.pinNotSet'));
+      } else if (result.code === 'session_missing') {
+        setError(t('onlineBanking.errors.pinSession'));
+      } else {
+        setPinEntry('');
+      }
+    } catch {
+      setError(t('onlineBanking.errors.pinFailed'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReturnToLogin = async () => {
+    setLoading(true);
+    await signOut();
+    setAwaitingPin(false);
+    setPinEntry('');
+    setError('');
+    setLoading(false);
+  };
+
+  const showPinStep = mode === 'login' && !pinVerified && (awaitingPin || Boolean(user));
+
+  if (showPinStep) {
+    return (
+      <div
+        className="relative flex min-h-screen items-center justify-center bg-cover bg-center"
+        style={{
+          backgroundImage:
+            "url('https://www.barings.com/globalassets/2-assets/strategies/real-estate/brea---properties/metropol/metropol-hero.jpg?t=20250721074040')"
+        }}
+      >
+        <div className="relative z-10 flex w-full items-center justify-center px-4 pb-10 pt-24 sm:px-6 lg:px-8">
+          <div className="w-full max-w-md">
+            <div className="rounded-[2rem] border border-white/65 bg-white/12 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.18)] backdrop-blur-xl sm:p-8">
+              <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#006446] text-white shadow-lg">
+                <KeyRound className="h-7 w-7" strokeWidth={1.7} />
+              </div>
+
+              <div className="text-center">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/75">
+                  {t('onlineBanking.pin.stepLabel')}
+                </p>
+                <h2 className="mt-2 text-3xl font-display font-bold text-white">
+                  {t('onlineBanking.pin.title')}
+                </h2>
+                <p className="mt-3 text-white/90">
+                  {t('onlineBanking.pin.subtitle')}
+                </p>
+                {(user?.email || email) && (
+                  <p className="mt-2 break-all text-sm font-medium text-white">
+                    {user?.email || email.trim().toLowerCase()}
+                  </p>
+                )}
+              </div>
+
+              {error && (
+                <div
+                  className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                  role="alert"
+                  aria-live="polite"
+                >
+                  {error}
+                </div>
+              )}
+
+              <form onSubmit={handlePinSubmit} className="mt-7 space-y-5" noValidate>
+                <div>
+                  <label htmlFor="login-pin" className="mb-2 block text-center text-sm font-medium text-white">
+                    {t('onlineBanking.fields.pin')}
+                  </label>
+                  <input
+                    id="login-pin"
+                    type="password"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={4}
+                    autoComplete="one-time-code"
+                    autoFocus
+                    value={pinEntry}
+                    onChange={(event) => {
+                      setPinEntry(event.target.value.replace(/\D/g, '').slice(0, 4));
+                      setError('');
+                    }}
+                    placeholder="••••"
+                    aria-describedby="login-pin-help"
+                    className="w-full rounded-xl border border-[#006446]/20 bg-white px-4 py-3 text-center font-mono text-2xl tracking-[0.7em] text-surface-900 placeholder:tracking-[0.7em] placeholder:text-surface-300 transition-all duration-200 focus:border-[#006446] focus:outline-none focus:ring-2 focus:ring-[#006446]/20"
+                  />
+                  <p id="login-pin-help" className="mt-2 text-center text-xs text-white/75">
+                    {t('onlineBanking.pin.help')}
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || pinEntry.length !== 4}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#006446] py-3.5 font-semibold text-white transition-all duration-200 hover:bg-[#00523a] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {loading ? (
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  ) : (
+                    <>
+                      {t('onlineBanking.actions.verifyPin')}
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => void handleReturnToLogin()}
+                  disabled={loading}
+                  className="flex w-full items-center justify-center gap-2 py-1 text-sm font-semibold text-white/85 transition-colors hover:text-white disabled:opacity-60"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  {t('onlineBanking.actions.backToLogin')}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -165,6 +334,8 @@ export default function OnlineBanking() {
               <button
                 onClick={() => {
                   setMode('login');
+                  setRegistrationPin('');
+                  setConfirmPin('');
                   setError('');
                 }}
                 className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-all duration-200 ${mode === 'login'
@@ -178,6 +349,8 @@ export default function OnlineBanking() {
               <button
                 onClick={() => {
                   setMode('register');
+                  setAwaitingPin(false);
+                  setPinEntry('');
                   setError('');
                 }}
                 className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-all duration-200 ${mode === 'register'
@@ -261,6 +434,45 @@ export default function OnlineBanking() {
                   </button>
                 </div>
               </div>
+
+              {mode === 'register' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-white">
+                      {t('onlineBanking.fields.createPin')}
+                    </label>
+                    <input
+                      type="password"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={4}
+                      value={registrationPin}
+                      onChange={(e) => setRegistrationPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      placeholder="••••"
+                      autoComplete="new-password"
+                      className="w-full rounded-xl border border-[#006446]/20 bg-white px-4 py-3 text-center font-mono text-lg tracking-[0.45em] text-surface-900 placeholder:text-surface-300 transition-all duration-200 focus:border-[#006446] focus:outline-none focus:ring-2 focus:ring-[#006446]/20"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-white">
+                      {t('onlineBanking.fields.confirmPin')}
+                    </label>
+                    <input
+                      type="password"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={4}
+                      value={confirmPin}
+                      onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      placeholder="••••"
+                      autoComplete="new-password"
+                      className="w-full rounded-xl border border-[#006446]/20 bg-white px-4 py-3 text-center font-mono text-lg tracking-[0.45em] text-surface-900 placeholder:text-surface-300 transition-all duration-200 focus:border-[#006446] focus:outline-none focus:ring-2 focus:ring-[#006446]/20"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
 
               {mode === 'register' && (
                 <label className="flex items-start gap-3 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white">

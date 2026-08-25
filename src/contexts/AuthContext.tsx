@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { isStaffCrmRole, normalizeCrmRole, type CrmRole } from '../lib/crmRoles';
 
 type KycStatus = 'pending' | 'submitted' | 'approved' | 'rejected';
+export type PinVerificationCode = 'verified' | 'invalid' | 'locked' | 'not_set' | 'session_missing';
 
 interface AuthProfile {
   full_name: string;
@@ -25,9 +26,11 @@ interface AuthContextType {
   isCrmStaff: boolean;
   crmRole: CrmRole;
   profile: AuthProfile | null;
+  pinVerified: boolean;
   refreshKycStatus: () => Promise<void>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string, fullName: string, loginPin: string) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  verifyPin: (pin: string) => Promise<{ code: PinVerificationCode; error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -42,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isCrmStaff, setIsCrmStaff] = useState(false);
   const [crmRole, setCrmRole] = useState<CrmRole>('customer');
   const [profile, setProfile] = useState<AuthProfile | null>(null);
+  const [pinVerified, setPinVerified] = useState(false);
   const userRef = useRef<User | null>(null);
   const profileRef = useRef<AuthProfile | null>(null);
 
@@ -54,11 +58,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [profile]);
 
   const fetchProfileState = useCallback(async (userId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('full_name, email, account_iban, kyc_status, crm_role, is_admin, assigned_manager_id, assigned_agent_id')
-      .eq('id', userId)
-      .maybeSingle();
+    const [{ data }, { data: currentPinVerification, error: pinVerificationError }] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('full_name, email, account_iban, kyc_status, crm_role, is_admin, assigned_manager_id, assigned_agent_id')
+        .eq('id', userId)
+        .maybeSingle(),
+      supabase.rpc('is_login_pin_verified'),
+    ]);
 
     if (data) {
       // Keep the legacy is_admin flag authoritative for administrators. Some
@@ -83,6 +90,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setCrmRole(nextRole);
       setIsAdmin(nextRole === 'admin');
       setIsCrmStaff(isStaffCrmRole(nextRole));
+      // Existing CRM staff must remain able to deploy/manage the new PIN flow
+      // if the RPC is temporarily unavailable. Once deployed, the RPC requires
+      // the second step for every profile that has a PIN assigned.
+      setPinVerified(currentPinVerification === true || (isStaffCrmRole(nextRole) && Boolean(pinVerificationError)));
     } else {
       profileRef.current = null;
       setProfile(null);
@@ -90,6 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsAdmin(false);
       setIsCrmStaff(false);
       setCrmRole('customer');
+      setPinVerified(false);
     }
   }, []);
 
@@ -115,6 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsAdmin(false);
       setIsCrmStaff(false);
       setCrmRole('customer');
+      setPinVerified(false);
       setLoading(false);
     };
 
@@ -200,13 +213,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [fetchProfileState]);
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, password: string, fullName: string, loginPin: string) => {
     const normalizedEmail = email.trim().toLowerCase();
     const { data, error } = await supabase.functions.invoke('public-register', {
       body: {
         email: normalizedEmail,
         password,
         full_name: fullName.trim(),
+        login_pin: loginPin,
       },
     });
 
@@ -218,6 +232,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     const normalizedEmail = email.trim().toLowerCase();
+    setPinVerified(false);
     const { error } = await supabase.auth.signInWithPassword({
       email: normalizedEmail,
       password,
@@ -227,12 +242,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: null };
   };
 
+  const verifyPin = async (pin: string) => {
+    const { data, error } = await supabase.rpc('verify_login_pin', { p_pin: pin });
+
+    if (error) {
+      return { code: 'session_missing' as PinVerificationCode, error: error.message };
+    }
+
+    const code = (
+      ['verified', 'invalid', 'locked', 'not_set', 'session_missing'].includes(String(data))
+        ? String(data)
+        : 'invalid'
+    ) as PinVerificationCode;
+
+    if (code === 'verified') setPinVerified(true);
+    return { code, error: null };
+  };
+
   const signOut = async () => {
+    setPinVerified(false);
     await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, kycStatus, isAdmin, isCrmStaff, crmRole, profile, refreshKycStatus, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, kycStatus, isAdmin, isCrmStaff, crmRole, profile, pinVerified, refreshKycStatus, signUp, signIn, verifyPin, signOut }}>
       {children}
     </AuthContext.Provider>
   );

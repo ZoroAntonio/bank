@@ -14,7 +14,7 @@ type IpGateState =
 
 export default function AdminRoute({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
-  const { user, loading, isCrmStaff, signOut } = useAuth();
+  const { user, loading, isCrmStaff, pinVerified, signOut } = useAuth();
   const userId = user?.id ?? null;
   const [ipGate, setIpGate] = useState<IpGateState>({ kind: 'checking' });
 
@@ -54,6 +54,7 @@ export default function AdminRoute({ children }: { children: React.ReactNode }) 
 
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/online-banking" replace />;
+  if (!pinVerified) return <Navigate to="/online-banking" replace />;
   if (!isCrmStaff) return <Navigate to="/dashboard" replace />;
 
   if (ipGate.kind === 'checking') return <LoadingScreen />;

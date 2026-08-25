@@ -18,6 +18,9 @@ registerTranslations({
     'onlineBanking.fields.fullName': 'Full Name',
     'onlineBanking.fields.email': 'Email Address',
     'onlineBanking.fields.password': 'Password',
+    'onlineBanking.fields.pin': '4-digit PIN',
+    'onlineBanking.fields.createPin': 'Create PIN',
+    'onlineBanking.fields.confirmPin': 'Confirm PIN',
 
     'onlineBanking.placeholders.fullName': 'John Doe',
     'onlineBanking.placeholders.email': 'you@example.com',
@@ -29,12 +32,26 @@ registerTranslations({
     'onlineBanking.actions.creatingAccount': 'Creating account',
     'onlineBanking.actions.showPassword': 'Show password',
     'onlineBanking.actions.hidePassword': 'Hide password',
+    'onlineBanking.actions.verifyPin': 'Verify PIN',
+    'onlineBanking.actions.backToLogin': 'Use a different login',
+
+    'onlineBanking.pin.stepLabel': 'Security check · Step 2 of 2',
+    'onlineBanking.pin.title': 'Enter your PIN',
+    'onlineBanking.pin.subtitle': 'Your password was accepted. Enter your four-digit banking PIN to continue.',
+    'onlineBanking.pin.help': 'Enter the PIN assigned to this account.',
 
     'onlineBanking.errors.fullNameRequired': 'Please enter your full name',
     'onlineBanking.errors.emailRequired': 'Please enter your email address',
     'onlineBanking.errors.passwordRequired': 'Please enter your password',
     'onlineBanking.errors.passwordMin':
       'Password must be at least 6 characters',
+    'onlineBanking.errors.pinFormat': 'PIN must contain exactly 4 digits.',
+    'onlineBanking.errors.pinMismatch': 'The PIN confirmation does not match.',
+    'onlineBanking.errors.invalidPin': 'The PIN is incorrect.',
+    'onlineBanking.errors.pinLocked': 'Too many incorrect attempts. Try again in 15 minutes.',
+    'onlineBanking.errors.pinNotSet': 'No PIN is assigned to this account. Contact the bank administrator.',
+    'onlineBanking.errors.pinSession': 'Your login session expired. Sign in again.',
+    'onlineBanking.errors.pinFailed': 'We could not verify your PIN. Please try again.',
     'onlineBanking.errors.termsRequired':
       "You must accept SKOK Bank's Terms & Conditions",
     'onlineBanking.errors.invalidCredentials':

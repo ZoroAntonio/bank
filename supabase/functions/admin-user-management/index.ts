@@ -232,6 +232,7 @@ Deno.serve(async (req: Request) => {
         ? payload.email.trim().toLowerCase()
         : "";
       const password = typeof payload.password === "string" ? payload.password : "";
+      const loginPin = typeof payload.login_pin === "string" ? payload.login_pin : "";
       const fullName = typeof payload.full_name === "string" ? payload.full_name.trim() : "";
       const accountIban = typeof payload.account_iban === "string"
         ? payload.account_iban.trim().toUpperCase()
@@ -269,6 +270,10 @@ Deno.serve(async (req: Request) => {
 
       if (password.length < 6) {
         return jsonResponse({ error: "Password must be at least 6 characters" }, 400);
+      }
+
+      if (!/^\d{4}$/.test(loginPin)) {
+        return jsonResponse({ error: "PIN must contain exactly 4 digits" }, 400);
       }
 
       if (Number.isNaN(Date.parse(accountCreatedAt))) {
@@ -396,6 +401,19 @@ Deno.serve(async (req: Request) => {
         const { error: rollbackError } = await adminClient.auth.admin.deleteUser(createdUser.id, false);
         return jsonResponse({
           error: `User profile creation failed: ${profileError?.message || "No profile was returned"}`,
+          rollback_warning: rollbackError?.message || null,
+        }, 500);
+      }
+
+      const { error: pinError } = await adminClient.rpc("set_client_login_pin", {
+        p_user_id: createdUser.id,
+        p_pin: loginPin,
+      });
+
+      if (pinError) {
+        const { error: rollbackError } = await adminClient.auth.admin.deleteUser(createdUser.id, false);
+        return jsonResponse({
+          error: `User PIN setup failed: ${pinError.message}`,
           rollback_warning: rollbackError?.message || null,
         }, 500);
       }

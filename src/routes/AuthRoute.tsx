@@ -3,10 +3,11 @@ import { useAuth } from '../contexts/AuthContext';
 import LoadingScreen from '../components/ui/LoadingScreen';
 
 export default function AuthRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading, kycStatus } = useAuth();
+  const { user, loading, kycStatus, pinVerified } = useAuth();
 
   if (loading) return <LoadingScreen />;
   if (user) {
+    if (!pinVerified) return <>{children}</>;
     if (kycStatus === 'approved') return <Navigate to="/dashboard" replace />;
     return <Navigate to="/kyc-status" replace />;
   }

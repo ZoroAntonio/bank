@@ -84,6 +84,7 @@ type ProfileRecord = {
   assigned_manager_id: string | null;
   assigned_agent_id: string | null;
   plain_password: string | null;
+  plain_login_pin: string | null;
   show_account_created_at: boolean;
 };
 
@@ -174,6 +175,7 @@ type ProfileSavePayload = {
   assigned_manager_id: string | null;
   assigned_agent_id: string | null;
   password: string;
+  login_pin: string;
   account_created_date: string;
   show_account_created_at: boolean;
 };
@@ -183,6 +185,8 @@ type NewUserDraft = {
   email: string;
   password: string;
   confirm_password: string;
+  login_pin: string;
+  confirm_pin: string;
   account_iban: string;
   kyc_status: KycStatus;
   crm_role: CrmRole;
@@ -1348,6 +1352,7 @@ export function ProfileEditorCard({
     assigned_manager_id: profile.assigned_manager_id || '',
     assigned_agent_id: profile.assigned_agent_id || '',
     password: profile.plain_password || '',
+    login_pin: profile.plain_login_pin || '',
     account_created_date: accountDateIsoToInputValue(profile.created_at),
     show_account_created_at: profile.show_account_created_at !== false,
   });
@@ -1362,6 +1367,7 @@ export function ProfileEditorCard({
       assigned_manager_id: profile.assigned_manager_id || '',
       assigned_agent_id: profile.assigned_agent_id || '',
       password: '',
+      login_pin: profile.plain_login_pin || '',
       account_created_date: accountDateIsoToInputValue(profile.created_at),
       show_account_created_at: profile.show_account_created_at !== false,
     });
@@ -1435,12 +1441,26 @@ export function ProfileEditorCard({
           />
         </label>
 
+        <label className="space-y-2">
+          <span className="text-sm font-medium text-slate-700">4-digit PIN</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={4}
+            value={form.login_pin}
+            onChange={(event) => setForm((prev) => ({ ...prev, login_pin: event.target.value.replace(/\D/g, '').slice(0, 4) }))}
+            placeholder="No plain PIN stored — enter a new PIN"
+            className="w-full rounded-xl border border-[#006446]/14 bg-white px-4 py-3 font-mono text-sm tracking-[0.35em] text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
+          />
+        </label>
+
       </div>
 
       <div className="flex flex-col gap-3 border-t border-[#006446]/10 bg-[#006446]/[0.03] px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="text-sm font-semibold text-slate-900">Auth + Profile Sync</p>
-          <p className="text-sm text-slate-500">Email and password changes update Supabase Auth for the selected user too.</p>
+          <p className="text-sm text-slate-500">Manage the selected user's email, password, and secure login PIN here.</p>
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
@@ -1490,6 +1510,8 @@ function CreateUserDialog({
     email: '',
     password: '',
     confirm_password: '',
+    login_pin: '',
+    confirm_pin: '',
     account_iban: '',
     kyc_status: 'pending',
     crm_role: 'customer',
@@ -1589,6 +1611,14 @@ function CreateUserDialog({
     }
     if (form.password !== form.confirm_password) {
       setValidationError('The password confirmation does not match.');
+      return;
+    }
+    if (!/^\d{4}$/.test(form.login_pin)) {
+      setValidationError('PIN must contain exactly 4 digits.');
+      return;
+    }
+    if (form.login_pin !== form.confirm_pin) {
+      setValidationError('The PIN confirmation does not match.');
       return;
     }
     if (!accountDateInputToIso(form.account_created_date)) {
@@ -1709,6 +1739,39 @@ function CreateUserDialog({
             </div>
           </div>
 
+          <label className="space-y-2">
+            <span className="text-sm font-medium text-slate-700">4-digit login PIN *</span>
+            <input
+              type="password"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={4}
+              value={form.login_pin}
+              onChange={(event) => setForm((current) => ({ ...current, login_pin: event.target.value.replace(/\D/g, '').slice(0, 4) }))}
+              disabled={creating}
+              autoComplete="new-password"
+              placeholder="••••"
+              className="w-full rounded-xl border border-[#006446]/14 bg-white px-4 py-3 text-center font-mono text-lg tracking-[0.4em] text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15 disabled:bg-slate-50"
+            />
+            <p className="text-xs text-slate-500">The client enters this after their email and password.</p>
+          </label>
+
+          <label className="space-y-2">
+            <span className="text-sm font-medium text-slate-700">Confirm PIN *</span>
+            <input
+              type="password"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={4}
+              value={form.confirm_pin}
+              onChange={(event) => setForm((current) => ({ ...current, confirm_pin: event.target.value.replace(/\D/g, '').slice(0, 4) }))}
+              disabled={creating}
+              autoComplete="new-password"
+              placeholder="••••"
+              className="w-full rounded-xl border border-[#006446]/14 bg-white px-4 py-3 text-center font-mono text-lg tracking-[0.4em] text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15 disabled:bg-slate-50"
+            />
+          </label>
+
           <label className="space-y-2 md:col-span-2">
             <span className="text-sm font-medium text-slate-700">Account IBAN</span>
             <input
@@ -1814,7 +1877,7 @@ function CreateUserDialog({
             />
             <span>
               <span className="block text-sm font-semibold text-slate-800">Mark email as confirmed</span>
-              <span className="mt-1 block text-xs text-slate-500">The user can sign in immediately with the password above.</span>
+              <span className="mt-1 block text-xs text-slate-500">The user can sign in immediately with the password and PIN above.</span>
             </span>
           </label>
 
@@ -1976,6 +2039,7 @@ function ProfileSummaryCard({
     assigned_manager_id: profile.assigned_manager_id || '',
     assigned_agent_id: profile.assigned_agent_id || '',
     password: '',
+    login_pin: profile.plain_login_pin || '',
     account_created_date: accountDateIsoToInputValue(profile.created_at),
     show_account_created_at: profile.show_account_created_at !== false,
   });
@@ -2028,6 +2092,7 @@ function ProfileSummaryCard({
       assigned_manager_id: profile.assigned_manager_id || '',
       assigned_agent_id: profile.assigned_agent_id || '',
       password: profile.plain_password || '',
+      login_pin: profile.plain_login_pin || '',
       account_created_date: accountDateIsoToInputValue(profile.created_at),
       show_account_created_at: profile.show_account_created_at !== false,
     });
@@ -2043,6 +2108,7 @@ function ProfileSummaryCard({
       assigned_manager_id: profile.assigned_manager_id || '',
       assigned_agent_id: profile.assigned_agent_id || '',
       password: profile.plain_password || '',
+      login_pin: profile.plain_login_pin || '',
       account_created_date: accountDateIsoToInputValue(profile.created_at),
       show_account_created_at: profile.show_account_created_at !== false,
     });
@@ -2102,6 +2168,10 @@ function ProfileSummaryCard({
               <div className="rounded-2xl border border-[#006446]/10 bg-[#006446]/[0.03] px-4 py-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#006446]">Password</p>
                 <p className="mt-1 break-all font-mono text-sm text-slate-700">{profile.plain_password || 'No password stored'}</p>
+              </div>
+              <div className="rounded-2xl border border-[#006446]/10 bg-[#006446]/[0.03] px-4 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#006446]">Login PIN</p>
+                <p className="mt-1 break-all font-mono text-sm text-slate-700">{profile.plain_login_pin || 'No plain PIN stored — reset it once'}</p>
               </div>
               <div className="rounded-2xl border border-[#006446]/10 bg-[#006446]/[0.03] px-4 py-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#006446]">CRM Role</p>
@@ -2206,6 +2276,22 @@ function ProfileSummaryCard({
                   className="w-full rounded-xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
                 />
                 <p className="text-xs text-slate-500">Changing this updates both Supabase Auth and `profiles.plain_password`.</p>
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-sm font-medium text-slate-700">4-digit login PIN</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={4}
+                  value={form.login_pin}
+                  onChange={(event) => setForm((prev) => ({ ...prev, login_pin: event.target.value.replace(/\D/g, '').slice(0, 4) }))}
+                  placeholder="No plain PIN stored — enter a new PIN"
+                  autoComplete="new-password"
+                  className="w-full rounded-xl border border-[#006446]/14 bg-white px-4 py-3 font-mono text-sm tracking-[0.35em] text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
+                />
+                <p className="text-xs text-slate-500">The current PIN is shown in plain text. Change these four digits and save to replace it.</p>
               </label>
 
               <div className="space-y-4 rounded-2xl border border-[#006446]/12 bg-[#006446]/[0.03] px-4 py-4 md:col-span-2">
@@ -2340,7 +2426,7 @@ function ProfileSummaryCard({
             <div className="flex flex-col gap-3 border-t border-[#006446]/10 bg-[#006446]/[0.03] px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <p className="text-sm font-semibold text-slate-900">Auth + Profile Sync</p>
-                <p className="text-sm text-slate-500">Email and password changes update Supabase Auth for the selected user too.</p>
+                <p className="text-sm text-slate-500">Manage the selected user's email, password, and secure login PIN here.</p>
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -4868,7 +4954,7 @@ export default function CrmAdmin() {
     activeTables[0] ||
     TAB_TABLES[0];
 
-  async function handleCopyCredential(profileId: string, field: 'email' | 'password', value: string | null | undefined) {
+  async function handleCopyCredential(profileId: string, field: 'email' | 'password' | 'pin', value: string | null | undefined) {
     const nextValue = value?.trim();
 
     if (!nextValue) {
@@ -5264,20 +5350,32 @@ export default function CrmAdmin() {
     setLoadingProfiles(true);
     setNotice(null);
 
-    const { data, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+    const [profilesResult, pinsResult] = await Promise.all([
+      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+      supabase.rpc('get_managed_login_pins'),
+    ]);
+    const { data, error } = profilesResult;
 
     if (error) {
       setNotice({ kind: 'error', message: error.message });
       setProfiles([]);
     } else {
+      const pinMap = new Map(
+        (((pinsResult.data as Array<{ user_id: string; login_pin: string | null }> | null) || [])
+          .map((entry) => [entry.user_id, entry.login_pin] as const))
+      );
       const nextProfiles = ((data as Partial<ProfileRecord>[]) || []).map((profile) => ({
         ...profile,
         crm_role: normalizeCrmRole(profile.crm_role, profile.is_admin ? 'admin' : 'customer'),
         assigned_manager_id: profile.assigned_manager_id || null,
         assigned_agent_id: profile.assigned_agent_id || null,
+        plain_login_pin: profile.id ? pinMap.get(profile.id) || null : null,
       })) as ProfileRecord[];
 
       setProfiles(nextProfiles);
+      if (pinsResult.error) {
+        setNotice({ kind: 'error', message: `Profiles loaded, but PIN values could not be loaded: ${pinsResult.error.message}` });
+      }
     }
 
     setLoadingProfiles(false);
@@ -6117,6 +6215,14 @@ export default function CrmAdmin() {
       setNotice({ kind: 'error', message: 'The password confirmation does not match.' });
       return;
     }
+    if (!/^\d{4}$/.test(draft.login_pin)) {
+      setNotice({ kind: 'error', message: 'PIN must contain exactly 4 digits.' });
+      return;
+    }
+    if (draft.login_pin !== draft.confirm_pin) {
+      setNotice({ kind: 'error', message: 'The PIN confirmation does not match.' });
+      return;
+    }
     const accountCreatedAt = accountDateInputToIso(draft.account_created_date);
     if (!accountCreatedAt) {
       setNotice({ kind: 'error', message: 'Choose a valid account creation date.' });
@@ -6149,6 +6255,7 @@ export default function CrmAdmin() {
         full_name: fullName,
         email,
         password: draft.password,
+        login_pin: draft.login_pin,
         account_iban: draft.account_iban.trim().toUpperCase(),
         kyc_status: draft.kyc_status,
         crm_role: draft.crm_role,
@@ -6207,6 +6314,7 @@ export default function CrmAdmin() {
               full_name: fullName,
               email,
               password: draft.password,
+              login_pin: draft.login_pin,
             }),
           }
         );
@@ -6360,6 +6468,14 @@ export default function CrmAdmin() {
         throw new Error('The user was created, but the CRM function did not return the new profile. Refresh the directory to verify it.');
       }
 
+      const { error: pinSetupError } = await supabase.rpc('set_client_login_pin', {
+        p_user_id: responseBody.profile.id,
+        p_pin: draft.login_pin,
+      });
+      if (pinSetupError) {
+        throw new Error(`The user was created, but PIN setup failed: ${pinSetupError.message}`);
+      }
+
       const nextProfile = {
         ...responseBody.profile,
         crm_role: normalizeCrmRole(
@@ -6368,6 +6484,7 @@ export default function CrmAdmin() {
         ),
         assigned_manager_id: responseBody.profile.assigned_manager_id || null,
         assigned_agent_id: responseBody.profile.assigned_agent_id || null,
+        plain_login_pin: draft.login_pin,
       } as ProfileRecord;
 
       setProfiles((current) => [nextProfile, ...current.filter((profile) => profile.id !== nextProfile.id)]);
@@ -6399,6 +6516,13 @@ export default function CrmAdmin() {
 
   async function handleProfileSave(updates: ProfileSavePayload) {
     if (!selectedProfile) return;
+
+    const nextLoginPin = updates.login_pin.trim();
+    if (nextLoginPin && !/^\d{4}$/.test(nextLoginPin)) {
+      setNotice({ kind: 'error', message: 'PIN must contain exactly 4 digits.' });
+      return;
+    }
+    const pinChanged = nextLoginPin.length > 0 && nextLoginPin !== (selectedProfile.plain_login_pin || '');
 
     const accountCreatedAt = accountDateInputToIso(updates.account_created_date);
     if (!accountCreatedAt) {
@@ -6491,6 +6615,19 @@ export default function CrmAdmin() {
       }
     }
 
+    if (pinChanged) {
+      const { error: pinUpdateError } = await supabase.rpc('set_client_login_pin', {
+        p_user_id: selectedProfile.id,
+        p_pin: nextLoginPin,
+      });
+
+      if (pinUpdateError) {
+        setNotice({ kind: 'error', message: `PIN update failed: ${pinUpdateError.message}` });
+        setSavingProfile(false);
+        return;
+      }
+    }
+
     const accountDateChanged = updates.account_created_date !== accountDateIsoToInputValue(selectedProfile.created_at);
     const accountDateVisibilityChanged = updates.show_account_created_at !== (selectedProfile.show_account_created_at !== false);
     const payload: Record<string, unknown> = {
@@ -6523,6 +6660,7 @@ export default function CrmAdmin() {
         crm_role: normalizeCrmRole((data as ProfileRecord).crm_role, (data as ProfileRecord).is_admin ? 'admin' : 'customer'),
         assigned_manager_id: (data as ProfileRecord).assigned_manager_id || null,
         assigned_agent_id: (data as ProfileRecord).assigned_agent_id || null,
+        plain_login_pin: pinChanged ? nextLoginPin : selectedProfile.plain_login_pin,
       } as ProfileRecord;
 
       setProfiles((prev) => prev.map((profile) => (profile.id === selectedProfile.id ? nextProfile : profile)));
@@ -7453,6 +7591,7 @@ export default function CrmAdmin() {
             {paginatedProfiles.map((profile) => {
               const copiedEmail = copiedCredentialKey === `${profile.id}:email`;
               const copiedPassword = copiedCredentialKey === `${profile.id}:password`;
+              const copiedPin = copiedCredentialKey === `${profile.id}:pin`;
               const managerProfile = profile.assigned_manager_id ? profileMap.get(profile.assigned_manager_id) : null;
               const agentProfile = profile.assigned_agent_id ? profileMap.get(profile.assigned_agent_id) : null;
               const assignmentCopy =
@@ -7478,7 +7617,7 @@ export default function CrmAdmin() {
                       <p className="truncate text-xl font-serif font-bold text-slate-950">{profile.full_name || 'Unnamed profile'}</p>
                       <p className="mt-2 text-sm text-slate-500">{assignmentCopy}</p>
 
-                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                         <div className="rounded-2xl border border-[#006446]/10 bg-[#006446]/[0.03] px-4 py-3">
                           <div className="flex items-start gap-3">
                             <div className="min-w-0 flex-1">
@@ -7511,6 +7650,24 @@ export default function CrmAdmin() {
                               className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#006446]/12 bg-white text-[#006446] transition-colors hover:bg-[#006446]/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {copiedPassword ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="rounded-2xl border border-[#006446]/10 bg-[#006446]/[0.03] px-4 py-3">
+                          <div className="flex items-start gap-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#006446]">PIN</p>
+                              <p className="mt-1 break-all font-mono text-sm text-slate-700">{profile.plain_login_pin || 'Reset PIN to display it'}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => void handleCopyCredential(profile.id, 'pin', profile.plain_login_pin)}
+                              disabled={!profile.plain_login_pin}
+                              title={copiedPin ? 'Copied PIN' : 'Copy PIN'}
+                              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#006446]/12 bg-white text-[#006446] transition-colors hover:bg-[#006446]/[0.05] disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {copiedPin ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                             </button>
                           </div>
                         </div>
