@@ -36,6 +36,60 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const PIN_VERIFICATION_STORAGE_KEY = 'skok-pin-verified-session';
+
+interface PinVerificationMarker {
+  userId: string;
+  sessionId: string;
+}
+
+function getAuthSessionId(session: Session): string | null {
+  try {
+    const payload = session.access_token.split('.')[1];
+    if (!payload) return null;
+
+    const base64Payload = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const normalizedPayload = base64Payload.padEnd(
+      base64Payload.length + ((4 - (base64Payload.length % 4)) % 4),
+      '=',
+    );
+    const decodedPayload = JSON.parse(window.atob(normalizedPayload)) as { session_id?: unknown };
+    return typeof decodedPayload.session_id === 'string' ? decodedPayload.session_id : null;
+  } catch {
+    return null;
+  }
+}
+
+function hasVerifiedPinForSession(session: Session): boolean {
+  const sessionId = getAuthSessionId(session);
+  if (!sessionId) return false;
+
+  try {
+    const storedMarker = window.sessionStorage.getItem(PIN_VERIFICATION_STORAGE_KEY);
+    if (!storedMarker) return false;
+
+    const marker = JSON.parse(storedMarker) as Partial<PinVerificationMarker>;
+    return marker.userId === session.user.id && marker.sessionId === sessionId;
+  } catch {
+    return false;
+  }
+}
+
+function rememberVerifiedPin(session: Session) {
+  const sessionId = getAuthSessionId(session);
+  if (!sessionId) return;
+
+  const marker: PinVerificationMarker = {
+    userId: session.user.id,
+    sessionId,
+  };
+  window.sessionStorage.setItem(PIN_VERIFICATION_STORAGE_KEY, JSON.stringify(marker));
+}
+
+function forgetVerifiedPin() {
+  window.sessionStorage.removeItem(PIN_VERIFICATION_STORAGE_KEY);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -57,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     profileRef.current = profile;
   }, [profile]);
 
-  const fetchProfileState = useCallback(async (userId: string) => {
+  const fetchProfileState = useCallback(async (userId: string, pinVerifiedInTab = false) => {
     const [{ data }, { data: currentPinVerification, error: pinVerificationError }] = await Promise.all([
       supabase
         .from('profiles')
@@ -93,7 +147,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Existing CRM staff must remain able to deploy/manage the new PIN flow
       // if the RPC is temporarily unavailable. Once deployed, the RPC requires
       // the second step for every profile that has a PIN assigned.
-      setPinVerified(currentPinVerification === true || (isStaffCrmRole(nextRole) && Boolean(pinVerificationError)));
+      setPinVerified(
+        pinVerifiedInTab ||
+        currentPinVerification === true ||
+        (isStaffCrmRole(nextRole) && Boolean(pinVerificationError)),
+      );
     } else {
       profileRef.current = null;
       setProfile(null);
@@ -106,10 +164,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshKycStatus = useCallback(async () => {
-    if (user) {
-      await fetchProfileState(user.id);
+    if (user && session) {
+      await fetchProfileState(user.id, hasVerifiedPinForSession(session));
     }
-  }, [user, fetchProfileState]);
+  }, [user, session, fetchProfileState]);
 
   useEffect(() => {
     let active = true;
@@ -128,6 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsCrmStaff(false);
       setCrmRole('customer');
       setPinVerified(false);
+      forgetVerifiedPin();
       setLoading(false);
     };
 
@@ -158,7 +217,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (shouldBlockForProfile || options.refreshProfile) {
-        void fetchProfileState(nextSession.user.id).finally(() => {
+        void fetchProfileState(
+          nextSession.user.id,
+          hasVerifiedPinForSession(nextSession),
+        ).finally(() => {
           if (active) setLoading(false);
         });
       }
@@ -232,6 +294,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     const normalizedEmail = email.trim().toLowerCase();
+    forgetVerifiedPin();
     setPinVerified(false);
     const { error } = await supabase.auth.signInWithPassword({
       email: normalizedEmail,
@@ -255,11 +318,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         : 'invalid'
     ) as PinVerificationCode;
 
-    if (code === 'verified') setPinVerified(true);
+    if (code === 'verified') {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (currentSession) rememberVerifiedPin(currentSession);
+      setPinVerified(true);
+    }
     return { code, error: null };
   };
 
   const signOut = async () => {
+    forgetVerifiedPin();
     setPinVerified(false);
     await supabase.auth.signOut();
   };
