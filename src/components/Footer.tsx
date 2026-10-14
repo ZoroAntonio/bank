@@ -134,10 +134,22 @@ export default function Footer() {
                 </a>
               </div>
 
-              <div>
-                <div className="min-w-[220px] max-w-sm rounded-2xl border border-[#006446]/12 bg-white px-5 py-4">
+              <div className="min-w-[220px] max-w-sm overflow-hidden rounded-2xl border border-[#006446]/12 bg-white">
+                <div className="px-5 py-4">
                   <p className="mb-1 text-[11px] uppercase tracking-[0.18em] text-surface-500">{t('license')}</p>
                   <p className="whitespace-pre-wrap break-words text-lg font-semibold text-[#006446]">{branding.license || '—'}</p>
+                </div>
+
+                <div className="border-t border-[#006446]/10 px-5 py-4">
+                  <p className="mb-1 text-[11px] uppercase tracking-[0.18em] text-surface-500">
+                    {t('legalContactEmail')}
+                  </p>
+                  <a
+                    href={`mailto:${branding.legalContactEmail}`}
+                    className="break-all text-sm font-semibold text-[#006446] underline decoration-[#006446]/25 underline-offset-4 transition-colors hover:decoration-[#006446]"
+                  >
+                    {branding.legalContactEmail}
+                  </a>
                 </div>
               </div>
             </div>

@@ -2826,7 +2826,7 @@ function BrandingSettingsCard({
             <div className="mt-5 border-t border-[#006446]/10 pt-5">
               <p className="text-sm font-semibold text-slate-900">Legal contact</p>
               <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                This single email address appears in Contact Us on the Privacy Policy, Terms of Service, and Disclosures pages.
+                This single email address appears in the public footer and in Contact Us on the Privacy Policy, Terms of Service, and Disclosures pages.
               </p>
               <label className="mt-4 block space-y-2">
                 <span className="text-sm font-medium text-slate-700">Legal contact email</span>
@@ -2882,6 +2882,12 @@ function BrandingSettingsCard({
                 <p className="text-xs text-slate-500">License</p>
                 <p className="mt-1 whitespace-pre-wrap font-semibold text-slate-900">
                   {previewBranding.license || '—'}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <p className="text-xs text-slate-500">Legal contact email</p>
+                <p className="mt-1 break-all font-semibold text-slate-900">
+                  {previewBranding.legalContactEmail}
                 </p>
               </div>
             </div>

@@ -3,6 +3,7 @@ import { registerTranslations } from '../../contexts/LanguageContext';
 registerTranslations({
   lt: {
     license: 'License',
+    legalContactEmail: 'Teisinio kontakto el. paštas',
     products: 'Produktai',
     company: 'Bendrovė',
     legal: 'Teisinė informacija',
@@ -34,6 +35,7 @@ registerTranslations({
   },
   en: {
     license: "License",
+    legalContactEmail: "Legal contact email",
     products: "Products",
     company: "Company",
     legal: "Legal",
@@ -78,6 +80,7 @@ registerTranslations({
 
   fr: {
     license: "License",
+    legalContactEmail: "E-mail du contact juridique",
     products: "Produits",
     company: "Entreprise",
     legal: "Légal",
@@ -123,6 +126,7 @@ registerTranslations({
 
   de: {
     license: "License",
+    legalContactEmail: "E-Mail des Rechtskontakts",
     products: "Produkte",
     company: "Unternehmen",
     legal: "Rechtliches",
@@ -168,6 +172,7 @@ registerTranslations({
 
   es: {
     license: "License",
+    legalContactEmail: "Correo del contacto legal",
     products: "Productos",
     company: "Empresa",
     legal: "Legal",
@@ -213,6 +218,7 @@ registerTranslations({
 
   it: {
     license: "License",
+    legalContactEmail: "E-mail del contatto legale",
     products: "Prodotti",
     company: "Azienda",
     legal: "Legale",
@@ -258,6 +264,7 @@ registerTranslations({
 
   pl: {
     license: 'License',
+    legalContactEmail: 'E-mail do kontaktu prawnego',
     products: 'Produkty',
     company: 'Firma',
     legal: 'Informacje prawne',
@@ -303,6 +310,7 @@ registerTranslations({
 
   el: {
     license: "License",
+    legalContactEmail: "Email νομικής επικοινωνίας",
     products: "Προϊόντα",
     company: "Εταιρεία",
     legal: "Νομικά",
