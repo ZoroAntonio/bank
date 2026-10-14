@@ -99,8 +99,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="fixed inset-0 flex min-h-0 overflow-hidden bg-[#006446]/[0.04]">
       {!isCrmAdmin && (
           <aside
-            className="relative z-20 flex w-[264px] shrink-0 flex-col overflow-hidden text-white shadow-[18px_0_45px_-38px_rgba(15,46,78,0.7)]"
-            style={{ background: 'linear-gradient(180deg, #153a5f 0%, #1b4a77 55%, #215b8f 100%)' }}
+            className="relative z-20 flex w-[264px] shrink-0 flex-col overflow-hidden text-white shadow-[18px_0_45px_-38px_rgba(0,100,70,0.7)]"
+            style={{ background: 'linear-gradient(180deg, #004c36 0%, #006446 52%, #07553f 100%)' }}
           >
             <div className="flex h-20 shrink-0 items-center border-b border-white/10 px-5">
               <Link to="/dashboard" className="flex min-w-0 items-center gap-3 rounded-lg py-2 text-white">
@@ -126,7 +126,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           to={item.path}
                           title={item.label}
                           aria-current={active ? 'page' : undefined}
-                          style={active ? { color: '#17446f' } : undefined}
+                          style={active ? { color: '#005b40' } : undefined}
                           className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
                             active
                               ? 'bg-white shadow-[0_10px_25px_-18px_rgba(0,0,0,0.8)]'
@@ -135,13 +135,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         >
                           <span
                             className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${
-                              active ? 'bg-[#1b4a77]/10' : 'bg-white/[0.07] group-hover:bg-white/10'
+                              active ? 'bg-[#006446]/10' : 'bg-white/[0.07] group-hover:bg-white/10'
                             }`}
                           >
                             <item.icon className="h-[18px] w-[18px]" />
                           </span>
                           <span className="truncate">{item.label}</span>
-                          {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#17446f]" />}
+                          {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#008b62]" />}
                         </Link>
                       );
                     })}
@@ -154,7 +154,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   to="/dashboard/profile"
                   title={t('dashboardLayout.nav.profile')}
                   aria-current={isActive('/dashboard/profile') ? 'page' : undefined}
-                  style={isActive('/dashboard/profile') ? { color: '#17446f' } : undefined}
+                  style={isActive('/dashboard/profile') ? { color: '#005b40' } : undefined}
                   className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
                     isActive('/dashboard/profile')
                       ? 'bg-white shadow-[0_10px_25px_-18px_rgba(0,0,0,0.8)]'
@@ -163,7 +163,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 >
                   <span
                     className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                      isActive('/dashboard/profile') ? 'bg-[#1b4a77]/10' : 'bg-white/[0.07] group-hover:bg-white/10'
+                      isActive('/dashboard/profile') ? 'bg-[#006446]/10' : 'bg-white/[0.07] group-hover:bg-white/10'
                     }`}
                   >
                     <User className="h-[18px] w-[18px]" />
