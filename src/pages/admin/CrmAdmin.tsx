@@ -2474,12 +2474,9 @@ function toBrandingForm(branding: BrandingSettings): BrandingForm {
     appleTouchIconUrl: branding.appleTouchIconUrl,
     favicon192Url: branding.favicon192Url,
     favicon512Url: branding.favicon512Url,
-    mfiId: branding.mfiId,
-    countryCode: branding.countryCode,
-    mfiCode: branding.mfiCode,
+    license: branding.license,
     institutionalTitle: branding.institutionalTitle,
     institutionalDescription: branding.institutionalDescription,
-    mfiIdNote: branding.mfiIdNote,
     depositorProtectionTitle: branding.depositorProtectionTitle,
     depositorProtectionDescription: branding.depositorProtectionDescription,
     depositorProtectionUrl: branding.depositorProtectionUrl,
@@ -2532,12 +2529,9 @@ function BrandingSettingsCard({
     appleTouchIconUrl: form.appleTouchIconUrl.trim() || DEFAULT_BRANDING.appleTouchIconUrl,
     favicon192Url: form.favicon192Url.trim() || DEFAULT_BRANDING.favicon192Url,
     favicon512Url: form.favicon512Url.trim() || DEFAULT_BRANDING.favicon512Url,
-    mfiId: form.mfiId.trim() || DEFAULT_BRANDING.mfiId,
-    countryCode: form.countryCode.trim() || DEFAULT_BRANDING.countryCode,
-    mfiCode: form.mfiCode.trim() || DEFAULT_BRANDING.mfiCode,
+    license: form.license.trim(),
     institutionalTitle: form.institutionalTitle.trim(),
     institutionalDescription: form.institutionalDescription.trim(),
-    mfiIdNote: form.mfiIdNote.trim(),
     depositorProtectionTitle: form.depositorProtectionTitle.trim(),
     depositorProtectionDescription: form.depositorProtectionDescription.trim(),
     depositorProtectionUrl: form.depositorProtectionUrl.trim() || DEFAULT_BRANDING.depositorProtectionUrl,
@@ -2763,38 +2757,16 @@ function BrandingSettingsCard({
               </p>
             </div>
 
-            <div className="mt-4 grid gap-4 sm:grid-cols-3">
-              <label className="space-y-2">
-                <span className="text-sm font-medium text-slate-700">MFI ID</span>
-                <input
-                  value={form.mfiId}
-                  onChange={(event) => onFieldChange('mfiId', event.target.value)}
-                  placeholder="PL10026"
-                  className="w-full rounded-2xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
-                />
-              </label>
-
-              <label className="space-y-2">
-                <span className="text-sm font-medium text-slate-700">Country code</span>
-                <input
-                  value={form.countryCode}
-                  onChange={(event) => onFieldChange('countryCode', event.target.value.toUpperCase())}
-                  placeholder="PL"
-                  maxLength={8}
-                  className="w-full rounded-2xl border border-[#006446]/14 bg-white px-4 py-3 text-sm uppercase text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
-                />
-              </label>
-
-              <label className="space-y-2">
-                <span className="text-sm font-medium text-slate-700">MFI code</span>
-                <input
-                  value={form.mfiCode}
-                  onChange={(event) => onFieldChange('mfiCode', event.target.value)}
-                  placeholder="10026"
-                  className="w-full rounded-2xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
-                />
-              </label>
-            </div>
+            <label className="mt-4 block space-y-2">
+              <span className="text-sm font-medium text-slate-700">License</span>
+              <textarea
+                value={form.license}
+                onChange={(event) => onFieldChange('license', event.target.value)}
+                placeholder="Enter any license text to show in the public footer"
+                rows={2}
+                className="w-full resize-y rounded-2xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
+              />
+            </label>
 
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <label className="space-y-2">
@@ -2825,17 +2797,6 @@ function BrandingSettingsCard({
                 onChange={(event) => onFieldChange('institutionalDescription', event.target.value)}
                 placeholder="Use the translated default"
                 rows={3}
-                className="w-full resize-y rounded-2xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
-              />
-            </label>
-
-            <label className="mt-4 block space-y-2">
-              <span className="text-sm font-medium text-slate-700">MFI note</span>
-              <textarea
-                value={form.mfiIdNote}
-                onChange={(event) => onFieldChange('mfiIdNote', event.target.value)}
-                placeholder="Leave blank to generate a translated note from the identifiers"
-                rows={2}
                 className="w-full resize-y rounded-2xl border border-[#006446]/14 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-[#006446]/35 focus:ring-2 focus:ring-[#006446]/15"
               />
             </label>
@@ -2918,9 +2879,9 @@ function BrandingSettingsCard({
                 <p className="mt-1 font-mono font-semibold text-slate-900">{referencePreview}</p>
               </div>
               <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                <p className="text-xs text-slate-500">Institution identifiers</p>
-                <p className="mt-1 font-semibold text-slate-900">
-                  {previewBranding.mfiId} · {previewBranding.countryCode} · {previewBranding.mfiCode}
+                <p className="text-xs text-slate-500">License</p>
+                <p className="mt-1 whitespace-pre-wrap font-semibold text-slate-900">
+                  {previewBranding.license || '—'}
                 </p>
               </div>
             </div>
@@ -5032,12 +4993,9 @@ export default function CrmAdmin() {
         appleTouchIconUrl: brandingForm.appleTouchIconUrl.trim() || DEFAULT_BRANDING.appleTouchIconUrl,
         favicon192Url: brandingForm.favicon192Url.trim() || DEFAULT_BRANDING.favicon192Url,
         favicon512Url: brandingForm.favicon512Url.trim() || DEFAULT_BRANDING.favicon512Url,
-        mfiId: brandingForm.mfiId.trim() || DEFAULT_BRANDING.mfiId,
-        countryCode: brandingForm.countryCode.trim().toUpperCase() || DEFAULT_BRANDING.countryCode,
-        mfiCode: brandingForm.mfiCode.trim() || DEFAULT_BRANDING.mfiCode,
+        license: brandingForm.license.trim(),
         institutionalTitle: brandingForm.institutionalTitle.trim(),
         institutionalDescription: brandingForm.institutionalDescription.trim(),
-        mfiIdNote: brandingForm.mfiIdNote.trim(),
         depositorProtectionTitle: brandingForm.depositorProtectionTitle.trim(),
         depositorProtectionDescription: brandingForm.depositorProtectionDescription.trim(),
         depositorProtectionUrl,

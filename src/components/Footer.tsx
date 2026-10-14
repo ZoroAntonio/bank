@@ -10,14 +10,8 @@ export default function Footer() {
   const { t } = useLanguage();
   const { branding } = useBranding();
   const { openPreferences } = useCookieConsent();
-  const usesDefaultInstitutionalIds = branding.mfiId === 'PL10026'
-    && branding.countryCode === 'PL'
-    && branding.mfiCode === '10026';
   const institutionalTitle = branding.institutionalTitle || t('institutionalIdentification');
   const institutionalDescription = branding.institutionalDescription || t('institutionalIdentificationDescription');
-  const mfiIdNote = branding.mfiIdNote || (usesDefaultInstitutionalIds
-    ? t('mfiIdNote')
-    : `${t('mfiId')}: ${branding.mfiId}. ${t('countryCode')}: ${branding.countryCode}. ${t('mfiCode')}: ${branding.mfiCode}.`);
   const depositorProtectionTitle = branding.depositorProtectionTitle || t('depositorProtectionTitle');
   const depositorProtectionDescription = branding.depositorProtectionDescription || t('depositorProtectionDescription');
 
@@ -73,17 +67,7 @@ export default function Footer() {
               <div className="mt-10 flex flex-wrap gap-3">
                 <div className="rounded-full border border-[#006446]/12 bg-white px-4 py-2 shadow-sm">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#006446]/65">
-                    {t('mfiId')}
-                  </span>
-                </div>
-                <div className="rounded-full border border-[#006446]/12 bg-white px-4 py-2 shadow-sm">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#006446]/65">
-                    {t('countryCode')}
-                  </span>
-                </div>
-                <div className="rounded-full border border-[#006446]/12 bg-white px-4 py-2 shadow-sm">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#006446]/65">
-                    {t('mfiCode')}
+                    {t('license')}
                   </span>
                 </div>
               </div>
@@ -132,10 +116,6 @@ export default function Footer() {
                   {institutionalDescription}
                 </p>
 
-                <p className="mt-6 max-w-3xl text-[11px] leading-relaxed text-surface-500">
-                  {mfiIdNote}
-                </p>
-
                 <a
                   href={branding.depositorProtectionUrl}
                   target="_blank"
@@ -154,18 +134,10 @@ export default function Footer() {
                 </a>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="min-w-[130px] rounded-2xl border border-[#006446]/12 bg-white px-5 py-4">
-                  <p className="mb-1 text-[11px] uppercase tracking-[0.18em] text-surface-500">{t('mfiId')}</p>
-                  <p className="text-lg font-semibold text-[#006446]">{branding.mfiId}</p>
-                </div>
-                <div className="min-w-[130px] rounded-2xl border border-[#006446]/12 bg-white px-5 py-4">
-                  <p className="mb-1 text-[11px] uppercase tracking-[0.18em] text-surface-500">{t('countryCode')}</p>
-                  <p className="text-lg font-semibold text-[#006446]">{branding.countryCode}</p>
-                </div>
-                <div className="min-w-[130px] rounded-2xl border border-[#006446]/12 bg-white px-5 py-4">
-                  <p className="mb-1 text-[11px] uppercase tracking-[0.18em] text-surface-500">{t('mfiCode')}</p>
-                  <p className="text-lg font-semibold text-[#006446]">{branding.mfiCode}</p>
+              <div>
+                <div className="min-w-[220px] max-w-sm rounded-2xl border border-[#006446]/12 bg-white px-5 py-4">
+                  <p className="mb-1 text-[11px] uppercase tracking-[0.18em] text-surface-500">{t('license')}</p>
+                  <p className="whitespace-pre-wrap break-words text-lg font-semibold text-[#006446]">{branding.license || '—'}</p>
                 </div>
               </div>
             </div>

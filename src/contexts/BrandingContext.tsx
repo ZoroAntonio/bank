@@ -31,12 +31,9 @@ export type BrandingSettings = {
   appleTouchIconUrl: string;
   favicon192Url: string;
   favicon512Url: string;
-  mfiId: string;
-  countryCode: string;
-  mfiCode: string;
+  license: string;
   institutionalTitle: string;
   institutionalDescription: string;
-  mfiIdNote: string;
   depositorProtectionTitle: string;
   depositorProtectionDescription: string;
   depositorProtectionUrl: string;
@@ -55,12 +52,9 @@ type BrandingRow = {
   apple_touch_icon_url?: string | null;
   favicon_192_url?: string | null;
   favicon_512_url?: string | null;
-  mfi_id?: string | null;
-  country_code?: string | null;
-  mfi_code?: string | null;
+  license?: string | null;
   institutional_title?: string | null;
   institutional_description?: string | null;
-  mfi_id_note?: string | null;
   depositor_protection_title?: string | null;
   depositor_protection_description?: string | null;
   depositor_protection_url?: string | null;
@@ -80,12 +74,9 @@ export type BrandingUpdate = Pick<
   | 'appleTouchIconUrl'
   | 'favicon192Url'
   | 'favicon512Url'
-  | 'mfiId'
-  | 'countryCode'
-  | 'mfiCode'
+  | 'license'
   | 'institutionalTitle'
   | 'institutionalDescription'
-  | 'mfiIdNote'
   | 'depositorProtectionTitle'
   | 'depositorProtectionDescription'
   | 'depositorProtectionUrl'
@@ -122,12 +113,9 @@ export const DEFAULT_BRANDING: BrandingSettings = {
   appleTouchIconUrl: '/apple-touch-icon.png',
   favicon192Url: '/android-chrome-192x192.png',
   favicon512Url: '/android-chrome-512x512.png',
-  mfiId: 'PL10026',
-  countryCode: 'PL',
-  mfiCode: '10026',
+  license: '',
   institutionalTitle: '',
   institutionalDescription: '',
-  mfiIdNote: '',
   depositorProtectionTitle: '',
   depositorProtectionDescription: '',
   depositorProtectionUrl: 'https://www.gov.pl/web/finance/protection-of-depositors',
@@ -168,12 +156,9 @@ function normalizeBranding(value: Partial<BrandingSettings> | BrandingRow | null
     appleTouchIconUrl: cleanText('appleTouchIconUrl' in (value || {}) ? (value as Partial<BrandingSettings>).appleTouchIconUrl : (value as BrandingRow | null | undefined)?.apple_touch_icon_url, DEFAULT_BRANDING.appleTouchIconUrl),
     favicon192Url: cleanText('favicon192Url' in (value || {}) ? (value as Partial<BrandingSettings>).favicon192Url : (value as BrandingRow | null | undefined)?.favicon_192_url, DEFAULT_BRANDING.favicon192Url),
     favicon512Url: cleanText('favicon512Url' in (value || {}) ? (value as Partial<BrandingSettings>).favicon512Url : (value as BrandingRow | null | undefined)?.favicon_512_url, DEFAULT_BRANDING.favicon512Url),
-    mfiId: cleanText('mfiId' in (value || {}) ? (value as Partial<BrandingSettings>).mfiId : (value as BrandingRow | null | undefined)?.mfi_id, DEFAULT_BRANDING.mfiId),
-    countryCode: cleanText('countryCode' in (value || {}) ? (value as Partial<BrandingSettings>).countryCode : (value as BrandingRow | null | undefined)?.country_code, DEFAULT_BRANDING.countryCode).toUpperCase(),
-    mfiCode: cleanText('mfiCode' in (value || {}) ? (value as Partial<BrandingSettings>).mfiCode : (value as BrandingRow | null | undefined)?.mfi_code, DEFAULT_BRANDING.mfiCode),
+    license: cleanOptionalText('license' in (value || {}) ? (value as Partial<BrandingSettings>).license : (value as BrandingRow | null | undefined)?.license),
     institutionalTitle: cleanOptionalText('institutionalTitle' in (value || {}) ? (value as Partial<BrandingSettings>).institutionalTitle : (value as BrandingRow | null | undefined)?.institutional_title),
     institutionalDescription: cleanOptionalText('institutionalDescription' in (value || {}) ? (value as Partial<BrandingSettings>).institutionalDescription : (value as BrandingRow | null | undefined)?.institutional_description),
-    mfiIdNote: cleanOptionalText('mfiIdNote' in (value || {}) ? (value as Partial<BrandingSettings>).mfiIdNote : (value as BrandingRow | null | undefined)?.mfi_id_note),
     depositorProtectionTitle: cleanOptionalText('depositorProtectionTitle' in (value || {}) ? (value as Partial<BrandingSettings>).depositorProtectionTitle : (value as BrandingRow | null | undefined)?.depositor_protection_title),
     depositorProtectionDescription: cleanOptionalText('depositorProtectionDescription' in (value || {}) ? (value as Partial<BrandingSettings>).depositorProtectionDescription : (value as BrandingRow | null | undefined)?.depositor_protection_description),
     depositorProtectionUrl: cleanHttpUrl('depositorProtectionUrl' in (value || {}) ? (value as Partial<BrandingSettings>).depositorProtectionUrl : (value as BrandingRow | null | undefined)?.depositor_protection_url, DEFAULT_BRANDING.depositorProtectionUrl),
@@ -314,12 +299,9 @@ function toRowPayload(branding: BrandingSettings) {
     apple_touch_icon_url: branding.appleTouchIconUrl,
     favicon_192_url: branding.favicon192Url,
     favicon_512_url: branding.favicon512Url,
-    mfi_id: branding.mfiId,
-    country_code: branding.countryCode,
-    mfi_code: branding.mfiCode,
+    license: branding.license,
     institutional_title: branding.institutionalTitle,
     institutional_description: branding.institutionalDescription,
-    mfi_id_note: branding.mfiIdNote,
     depositor_protection_title: branding.depositorProtectionTitle,
     depositor_protection_description: branding.depositorProtectionDescription,
     depositor_protection_url: branding.depositorProtectionUrl,
@@ -543,7 +525,7 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await supabase
         .from('site_branding')
-        .select('brand_name, brand_keyword, navbar_logo_url, footer_logo_url, favicon_ico_url, favicon_16_url, favicon_32_url, apple_touch_icon_url, favicon_192_url, favicon_512_url, mfi_id, country_code, mfi_code, institutional_title, institutional_description, mfi_id_note, depositor_protection_title, depositor_protection_description, depositor_protection_url, legal_contact_email, updated_at')
+        .select('brand_name, brand_keyword, navbar_logo_url, footer_logo_url, favicon_ico_url, favicon_16_url, favicon_32_url, apple_touch_icon_url, favicon_192_url, favicon_512_url, license, institutional_title, institutional_description, depositor_protection_title, depositor_protection_description, depositor_protection_url, legal_contact_email, updated_at')
         .eq('id', BRANDING_ROW_ID)
         .maybeSingle();
 
@@ -590,7 +572,7 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase
       .from('site_branding')
       .upsert(toRowPayload(nextBranding), { onConflict: 'id' })
-      .select('brand_name, brand_keyword, navbar_logo_url, footer_logo_url, favicon_ico_url, favicon_16_url, favicon_32_url, apple_touch_icon_url, favicon_192_url, favicon_512_url, mfi_id, country_code, mfi_code, institutional_title, institutional_description, mfi_id_note, depositor_protection_title, depositor_protection_description, depositor_protection_url, legal_contact_email, updated_at')
+      .select('brand_name, brand_keyword, navbar_logo_url, footer_logo_url, favicon_ico_url, favicon_16_url, favicon_32_url, apple_touch_icon_url, favicon_192_url, favicon_512_url, license, institutional_title, institutional_description, depositor_protection_title, depositor_protection_description, depositor_protection_url, legal_contact_email, updated_at')
       .single();
 
     if (error) {

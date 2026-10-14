@@ -2,6 +2,7 @@ import { registerTranslations } from '../../contexts/LanguageContext';
 
 registerTranslations({
   lt: {
+    license: 'License',
     products: 'Produktai',
     company: 'Bendrovė',
     legal: 'Teisinė informacija',
@@ -32,6 +33,7 @@ registerTranslations({
     depositorProtectionDescription: 'Susipažinkite su oficialiomis Finansų ministerijos gairėmis dėl indėlininkų apsaugos.',
   },
   en: {
+    license: "License",
     products: "Products",
     company: "Company",
     legal: "Legal",
@@ -75,6 +77,7 @@ registerTranslations({
   },
 
   fr: {
+    license: "License",
     products: "Produits",
     company: "Entreprise",
     legal: "Légal",
@@ -119,6 +122,7 @@ registerTranslations({
   },
 
   de: {
+    license: "License",
     products: "Produkte",
     company: "Unternehmen",
     legal: "Rechtliches",
@@ -163,6 +167,7 @@ registerTranslations({
   },
 
   es: {
+    license: "License",
     products: "Productos",
     company: "Empresa",
     legal: "Legal",
@@ -207,6 +212,7 @@ registerTranslations({
   },
 
   it: {
+    license: "License",
     products: "Prodotti",
     company: "Azienda",
     legal: "Legale",
@@ -251,6 +257,7 @@ registerTranslations({
   },
 
   pl: {
+    license: 'License',
     products: 'Produkty',
     company: 'Firma',
     legal: 'Informacje prawne',
@@ -295,6 +302,7 @@ registerTranslations({
   },
 
   el: {
+    license: "License",
     products: "Προϊόντα",
     company: "Εταιρεία",
     legal: "Νομικά",
